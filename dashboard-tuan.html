@@ -993,8 +993,37 @@ function seedRealData(){
   };
 }
 
-let DATA = loadData() || seedRealData();
-saveData(DATA);
+// Bump SEED_VERSION whenever seedRealData() changes meaningfully so we can detect stale localStorage
+const SEED_VERSION = 'tx-soan-real-2025-09';
+
+const _stored = loadData();
+let DATA;
+if (_stored && _stored._seedVersion === SEED_VERSION) {
+  DATA = _stored;
+} else if (_stored) {
+  // Old localStorage exists but is from a previous seed version. Warn the user — don't auto-overwrite their work.
+  console.warn(
+    '%c[Weekly Tracking] Có dữ liệu mẫu mới hơn (' + SEED_VERSION + '). ' +
+    'Để tải lại dữ liệu mẫu mới, gõ vào console: resetData()\n' +
+    'CẢNH BÁO: mọi chỉnh sửa của bạn sẽ bị mất.',
+    'color:#dc2626;font-weight:bold;font-size:13px'
+  );
+  DATA = _stored;
+} else {
+  // No localStorage yet → first-time visit, load seed.
+  DATA = seedRealData();
+  DATA._seedVersion = SEED_VERSION;
+  saveData(DATA);
+}
+
+// Manual reset helper — user can run this from devtools console any time to reload sample data.
+window.resetData = function(){
+  if (!confirm('Tải lại dữ liệu mẫu mới? Mọi chỉnh sửa hiện tại sẽ bị mất.')) return;
+  const fresh = seedRealData();
+  fresh._seedVersion = SEED_VERSION;
+  saveData(fresh);
+  location.reload();
+};
 
 /* ==========================================================
    STATE
