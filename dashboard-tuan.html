@@ -619,6 +619,13 @@ function fmtDate(d){ d = new Date(d); return d.getDate().toString().padStart(2,'
 function toISODate(d){ const x = new Date(d); const o = x.getTimezoneOffset(); return new Date(x.getTime() - o*60000).toISOString().slice(0,10); }
 function startOfWeek(d){ const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
 function endOfWeek(d){ const x = startOfWeek(d); x.setDate(x.getDate()+6); return x; }
+function defaultDateRange(){
+  // Default view = last 12 weeks (≈ 3 months) ending at the current week's Sunday
+  const today = new Date();
+  const start = startOfWeek(today);
+  start.setDate(start.getDate() - 11 * 7);  // include current week + 11 previous = 12 weeks total
+  return { start: toISODate(start), end: toISODate(endOfWeek(today)) };
+}
 function weekLabel(start){ const s = new Date(start); const e = endOfWeek(s); return fmtDate(s) + ' - ' + fmtDate(e); }
 function monthKey(date){ const d = new Date(date); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
 function monthLabel(key){ const [y, m] = key.split('-'); return MONTH_NAMES[parseInt(m)-1] + '/' + y; }
@@ -834,7 +841,7 @@ saveData(DATA);
 let activeMode = 'monthly';     // 'monthly' | 'weekly'
 let activeBranch = 'all';
 let activeView = 'overview';    // 'overview' | 'customers' | 'service' | 'product' | 'courses' | 'leads' | 'students' | 'conversion'
-let dateRange = { start: null, end: null };  // ISO date strings or null
+let dateRange = defaultDateRange();  // default = last 12 weeks (~3 months); use rangeClear to remove filter
 let metricToggles = { leads: true, customers: true, courses: true, revenue: true };  // for SCA dashboard
 let studentCourseToggles = { leads: true, customers: true, courses: true };  // for SCA leads/students/courses chart
 
@@ -2204,16 +2211,16 @@ $('#rangeStart').addEventListener('change', () => { dateRange.start = $('#rangeS
 $('#rangeEnd').addEventListener('change', () => { dateRange.end = $('#rangeEnd').value || null; updateRangeUI(); renderAll(); });
 $('#rangeClear').addEventListener('click', () => { dateRange = { start: null, end: null }; updateRangeUI(); renderAll(); });
 
-// Open native calendar picker on click for ALL date inputs (including fWeekStart in the form)
+// Double-click the input opens the native calendar picker; single click leaves you free to type dd/mm/yyyy directly
 $$('input[type="date"]').forEach(inp => {
-  inp.addEventListener('click', (e) => {
+  inp.addEventListener('dblclick', () => {
     if (typeof inp.showPicker === 'function') {
       try { inp.showPicker(); } catch(err) { /* showPicker requires a user gesture; ignore otherwise */ }
     }
   });
-  // Keyboard accessibility: open picker when focused via Tab + pressing Space/Enter
+  // Keyboard accessibility: when focused via Tab, press Enter to open the picker
   inp.addEventListener('keydown', (e) => {
-    if ((e.key === ' ' || e.key === 'Enter') && typeof inp.showPicker === 'function') {
+    if (e.key === 'Enter' && typeof inp.showPicker === 'function') {
       e.preventDefault();
       try { inp.showPicker(); } catch(err) {}
     }
@@ -2240,6 +2247,7 @@ $$('.sidebar .nav-item').forEach(el => {
 /* ==========================================================
    INIT
 ========================================================== */
+updateRangeUI();
 renderAll();
 </script>
 </body>
