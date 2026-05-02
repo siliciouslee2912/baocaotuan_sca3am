@@ -2204,7 +2204,23 @@ $('#rangeStart').addEventListener('change', () => { dateRange.start = $('#rangeS
 $('#rangeEnd').addEventListener('change', () => { dateRange.end = $('#rangeEnd').value || null; updateRangeUI(); renderAll(); });
 $('#rangeClear').addEventListener('click', () => { dateRange = { start: null, end: null }; updateRangeUI(); renderAll(); });
 
-// Click anywhere on the wrap to open the calendar picker
+// Open native calendar picker on click for ALL date inputs (including fWeekStart in the form)
+$$('input[type="date"]').forEach(inp => {
+  inp.addEventListener('click', (e) => {
+    if (typeof inp.showPicker === 'function') {
+      try { inp.showPicker(); } catch(err) { /* showPicker requires a user gesture; ignore otherwise */ }
+    }
+  });
+  // Keyboard accessibility: open picker when focused via Tab + pressing Space/Enter
+  inp.addEventListener('keydown', (e) => {
+    if ((e.key === ' ' || e.key === 'Enter') && typeof inp.showPicker === 'function') {
+      e.preventDefault();
+      try { inp.showPicker(); } catch(err) {}
+    }
+  });
+});
+
+// Also allow clicking the wrap area (icon / padding around the input) to open the picker
 $$('.date-input-wrap').forEach(wrap => {
   wrap.addEventListener('click', (e) => {
     const inp = wrap.querySelector('input[type="date"]');
