@@ -1193,7 +1193,11 @@ function renderStats(){
 let mainChart, sourceChart, customerChart;
 
 function renderMainChart(){
-  const periods = aggregateByPeriod(activeBranch, activeMode);
+  let periods = aggregateByPeriod(activeBranch, activeMode);
+  // Limit to the last 6 weeks for the "Doanh thu theo tuần" (overview) and "Khách hàng theo tuần" (customers) charts
+  if (activeMode === 'weekly' && (activeView === 'overview' || activeView === 'customers')) {
+    periods = periods.slice(-6);
+  }
   const labels = periods.map(p => p.label);
   const ctx = $('#mainChart').getContext('2d');
   if (mainChart) mainChart.destroy();
@@ -1379,7 +1383,12 @@ function renderSourceChart(){
 }
 
 function renderCustomerChart(){
-  const periods = aggregateByPeriod(activeBranch, activeMode);
+  let periods = aggregateByPeriod(activeBranch, activeMode);
+  // Limit to the last 6 weeks for "Khách hàng theo tuần" and "Leads theo nguồn (tuần)" charts
+  // (skip the chart-specific views: courses → "DT khoá học", students → "Số khoá theo loại", conversion → "Leads vs Khách")
+  if (activeMode === 'weekly' && activeView !== 'courses' && activeView !== 'students' && activeView !== 'conversion') {
+    periods = periods.slice(-6);
+  }
   const labels = periods.map(p => p.label);
   const ctx = $('#customerChart').getContext('2d');
   if (customerChart) customerChart.destroy();
