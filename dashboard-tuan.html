@@ -324,7 +324,7 @@
             <div class="date-input-wrap">
               <input type="date" id="rangeEnd" title="Click để chọn ngày kết thúc" />
             </div>
-            <button class="range-clear" id="rangeClear" title="Xoá bộ lọc">
+            <button class="range-clear" id="rangeClear" title="Khôi phục mặc định (12 tháng / 10 tuần)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
@@ -619,12 +619,18 @@ function fmtDate(d){ d = new Date(d); return d.getDate().toString().padStart(2,'
 function toISODate(d){ const x = new Date(d); const o = x.getTimezoneOffset(); return new Date(x.getTime() - o*60000).toISOString().slice(0,10); }
 function startOfWeek(d){ const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
 function endOfWeek(d){ const x = startOfWeek(d); x.setDate(x.getDate()+6); return x; }
-function defaultDateRange(){
-  // Default view = last 12 weeks (≈ 3 months) ending at the current week's Sunday
+function defaultDateRange(mode){
+  // Default ranges per mode: weekly = last 10 weeks, monthly = last 12 months (ending at current period)
   const today = new Date();
-  const start = startOfWeek(today);
-  start.setDate(start.getDate() - 11 * 7);  // include current week + 11 previous = 12 weeks total
-  return { start: toISODate(start), end: toISODate(endOfWeek(today)) };
+  if (mode === 'weekly') {
+    const start = startOfWeek(today);
+    start.setDate(start.getDate() - 9 * 7);  // current week + 9 prior = 10 weeks total
+    return { start: toISODate(start), end: toISODate(endOfWeek(today)) };
+  }
+  // Monthly (default)
+  const start = new Date(today.getFullYear(), today.getMonth() - 11, 1);  // first day of (current month - 11) = 12 months total
+  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);     // last day of current month
+  return { start: toISODate(start), end: toISODate(end) };
 }
 function weekLabel(start){ const s = new Date(start); const e = endOfWeek(s); return fmtDate(s) + ' - ' + fmtDate(e); }
 function monthKey(date){ const d = new Date(date); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); }
@@ -841,7 +847,7 @@ saveData(DATA);
 let activeMode = 'monthly';     // 'monthly' | 'weekly'
 let activeBranch = 'all';
 let activeView = 'overview';    // 'overview' | 'customers' | 'service' | 'product' | 'courses' | 'leads' | 'students' | 'conversion'
-let dateRange = defaultDateRange();  // default = last 12 weeks (~3 months); use rangeClear to remove filter
+let dateRange = defaultDateRange(activeMode);  // weekly = last 10 weeks, monthly = last 12 months
 let metricToggles = { leads: true, customers: true, courses: true, revenue: true };  // for SCA dashboard
 let studentCourseToggles = { leads: true, customers: true, courses: true };  // for SCA leads/students/courses chart
 
@@ -923,27 +929,58 @@ function aggregateByPeriod(branchId, mode){
   });
   let result = Array.from(map.values()).sort((a,b)=> a.key.localeCompare(b.key));
 
-  // Trong chế độ Theo tháng (không có lọc ngày): luôn hiển thị 12 tháng liên tiếp
-  if (mode === 'monthly' && !dateRange.start && !dateRange.end) {
-    function emptyPeriod(key) {
-      return {
-        key, label: monthLabel(key),
-        sources: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
-        leads: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
-        courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0},o),{}),
-        revenue: { service: 0, product: 0, courses: 0 },
-        returning: 0, newCustTotal: 0, leadsTotal: 0, studentTotal: 0,
-        totalCust: 0, totalNewCust: 0, totalLeads: 0, totalCourses: 0
-      };
-    }
-    const endDate = new Date();
-    const months = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(endDate.getFullYear(), endDate.getMonth() - i, 1);
-      months.push(monthKey(d));
-    }
-    result = months.map(k => map.get(k) || emptyPeriod(k));
+  // Pad result so the chart always has consistent length: 12 months in monthly mode, 10 weeks in weekly mode
+  // (or, if the user expanded the range, fill the entire range with empty periods for missing data).
+  function emptyPeriod(key, m) {
+    return {
+      key, label: m === 'monthly' ? monthLabel(key) : weekLabel(key),
+      sources: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
+      leads: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
+      courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0},o),{}),
+      revenue: { service: 0, product: 0, courses: 0 },
+      returning: 0, newCustTotal: 0, leadsTotal: 0, studentTotal: 0,
+      totalCust: 0, totalNewCust: 0, totalLeads: 0, totalCourses: 0
+    };
   }
+
+  let displayKeys = [];
+  if (mode === 'monthly') {
+    if (dateRange.start && dateRange.end) {
+      const sd = new Date(dateRange.start);
+      const ed = new Date(dateRange.end);
+      let cur = new Date(sd.getFullYear(), sd.getMonth(), 1);
+      const stop = new Date(ed.getFullYear(), ed.getMonth(), 1);
+      while (cur <= stop) {
+        displayKeys.push(monthKey(cur));
+        cur.setMonth(cur.getMonth() + 1);
+      }
+    } else {
+      // Fallback (no range set): last 12 months
+      const today = new Date();
+      for (let i = 11; i >= 0; i--) {
+        displayKeys.push(monthKey(new Date(today.getFullYear(), today.getMonth() - i, 1)));
+      }
+    }
+  } else { // weekly
+    if (dateRange.start && dateRange.end) {
+      const sd = startOfWeek(new Date(dateRange.start));
+      const ed = startOfWeek(new Date(dateRange.end));
+      let cur = new Date(sd);
+      while (cur <= ed) {
+        displayKeys.push(toISODate(cur));
+        cur.setDate(cur.getDate() + 7);
+      }
+    } else {
+      // Fallback (no range set): last 10 weeks
+      const cur = startOfWeek(new Date());
+      for (let i = 9; i >= 0; i--) {
+        const d = new Date(cur);
+        d.setDate(d.getDate() - i * 7);
+        displayKeys.push(toISODate(d));
+      }
+    }
+  }
+  result = displayKeys.map(k => map.get(k) || emptyPeriod(k, mode));
 
   return result;
 }
@@ -2209,7 +2246,7 @@ function updateRangeUI(){
 }
 $('#rangeStart').addEventListener('change', () => { dateRange.start = $('#rangeStart').value || null; updateRangeUI(); renderAll(); });
 $('#rangeEnd').addEventListener('change', () => { dateRange.end = $('#rangeEnd').value || null; updateRangeUI(); renderAll(); });
-$('#rangeClear').addEventListener('click', () => { dateRange = { start: null, end: null }; updateRangeUI(); renderAll(); });
+$('#rangeClear').addEventListener('click', () => { dateRange = defaultDateRange(activeMode); updateRangeUI(); renderAll(); });
 
 // Double-click the input opens the native calendar picker; single click leaves you free to type dd/mm/yyyy directly
 $$('input[type="date"]').forEach(inp => {
@@ -2241,7 +2278,15 @@ $$('.date-input-wrap').forEach(wrap => {
    SIDEBAR MODE TOGGLE
 ========================================================== */
 $$('.sidebar .nav-item').forEach(el => {
-  el.onclick = () => { activeMode = el.dataset.mode; renderAll(); };
+  el.onclick = () => {
+    const newMode = el.dataset.mode;
+    if (newMode !== activeMode) {
+      activeMode = newMode;
+      dateRange = defaultDateRange(activeMode);  // weekly: last 10 weeks; monthly: last 12 months
+      updateRangeUI();
+    }
+    renderAll();
+  };
 });
 
 /* ==========================================================
