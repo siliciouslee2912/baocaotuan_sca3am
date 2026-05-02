@@ -344,6 +344,15 @@
         <div id="branchChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
       </div>
 
+      <div class="branch-bar" style="padding-top:0;">
+        <span class="branch-bar-label">Doanh thu hiển thị:</span>
+        <div class="metric-toggles" id="revenueModeToggle">
+          <div class="metric-toggle on" data-mode="net" title="Doanh thu sau khi trừ khuyến mãi">DT thuần</div>
+          <div class="metric-toggle" data-mode="gross" title="Doanh thu chưa trừ khuyến mãi">DT gộp</div>
+          <div class="metric-toggle" data-mode="promo" title="Tổng giảm trừ khuyến mãi">Giảm trừ KM</div>
+        </div>
+      </div>
+
       <section class="stats" id="stats"></section>
 
       <section class="row r-2">
@@ -517,35 +526,49 @@
 
         <!-- SPA fields -->
         <div id="spaFields">
-          <div class="section-label">💰 Doanh thu</div>
+          <div class="section-label">💰 Doanh thu dịch vụ</div>
           <div class="form-grid cols-2">
             <div class="field">
-              <label>Doanh thu dịch vụ</label>
+              <label>DT gộp dịch vụ</label>
               <div class="field-money">
                 <input type="number" id="fService" min="0" step="1000" placeholder="0" />
                 <span class="suffix">VNĐ</span>
               </div>
             </div>
             <div class="field">
-              <label>Doanh thu bán sản phẩm</label>
+              <label>🎁 Giảm trừ KM (dịch vụ)</label>
+              <div class="field-money">
+                <input type="number" id="fServicePromo" min="0" step="1000" placeholder="0" />
+                <span class="suffix">VNĐ</span>
+              </div>
+            </div>
+          </div>
+          <div class="summary-row" style="background:var(--green-soft);"><span>DT thuần dịch vụ:</span> <strong id="netRevenueService" style="color:var(--green);">0₫</strong></div>
+
+          <div class="section-label" style="margin-top:14px;">📦 Doanh thu sản phẩm</div>
+          <div class="form-grid cols-2">
+            <div class="field">
+              <label>DT gộp sản phẩm</label>
               <div class="field-money">
                 <input type="number" id="fProduct" min="0" step="1000" placeholder="0" />
                 <span class="suffix">VNĐ</span>
               </div>
             </div>
             <div class="field">
-              <label>🎁 Các khoản khuyến mãi</label>
+              <label>🎁 Giảm trừ KM (sản phẩm)</label>
               <div class="field-money">
-                <input type="number" id="fPromoSpa" min="0" step="1000" placeholder="0" />
+                <input type="number" id="fProductPromo" min="0" step="1000" placeholder="0" />
                 <span class="suffix">VNĐ</span>
               </div>
-              <div class="hint">Tổng giảm giá / khuyến mãi đã áp dụng trong tuần</div>
             </div>
           </div>
-          <div class="summary-row dual">
-            <div><span>Doanh thu gộp:</span> <strong id="grossRevenueSpa">0₫</strong></div>
-            <div><span>Doanh thu thuần:</span> <strong id="netRevenueSpa" style="color:var(--green);">0₫</strong></div>
+          <div class="summary-row" style="background:var(--green-soft);"><span>DT thuần sản phẩm:</span> <strong id="netRevenueProduct" style="color:var(--green);">0₫</strong></div>
+
+          <div class="summary-row dual" style="margin-top:14px;">
+            <div><span>Tổng DT gộp:</span> <strong id="grossRevenueSpa">0₫</strong></div>
+            <div><span>Tổng giảm trừ KM:</span> <strong id="totalPromoSpa" style="color:var(--text-muted);">0₫</strong></div>
           </div>
+          <div class="summary-row" style="background:var(--green-soft);"><span><strong>Tổng DT thuần:</strong></span> <strong id="netRevenueSpa" style="color:var(--green);font-size:16px;">0₫</strong></div>
         </div>
 
         <!-- ACADEMY fields -->
@@ -573,25 +596,13 @@
             <small>1 học viên có thể đăng ký nhiều khoá</small>
           </div>
           <div id="coursesContainer"></div>
-          <div class="form-grid cols-2" style="margin-top:14px;">
-            <div class="field">
-              <label>🎁 Các khoản khuyến mãi</label>
-              <div class="field-money">
-                <input type="number" id="fPromoAca" min="0" step="1000" placeholder="0" />
-                <span class="suffix">VNĐ</span>
-              </div>
-              <div class="hint">Tổng giảm giá / khuyến mãi đã áp dụng trong tuần</div>
-            </div>
-            <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
-              <div style="background:var(--bg);padding:10px 12px;border-radius:9px;font-size:12px;color:var(--text-muted);">
-                <div>DT gộp: <strong id="grossRevenueAcademy" style="color:var(--text);font-variant-numeric:tabular-nums;">0₫</strong></div>
-                <div style="margin-top:2px;">DT thuần: <strong id="netRevenueAcademy" style="color:var(--green);font-variant-numeric:tabular-nums;">0₫</strong></div>
-              </div>
-            </div>
-          </div>
           <div class="summary-row dual">
             <div><span>Tổng khoá đã bán:</span> <strong id="totalCourses">0 khoá</strong></div>
-            <div><span>Tổng doanh thu:</span> <strong id="totalRevenueAcademy">0₫</strong></div>
+            <div><span>Tổng DT gộp:</span> <strong id="totalRevenueAcademy">0₫</strong></div>
+          </div>
+          <div class="summary-row dual">
+            <div><span>Tổng giảm trừ KM:</span> <strong id="totalPromoAca" style="color:var(--text-muted);">0₫</strong></div>
+            <div><span><strong>Tổng DT thuần:</strong></span> <strong id="netRevenueAcademy" style="color:var(--green);font-size:16px;">0₫</strong></div>
           </div>
           <div class="summary-row" style="background:var(--green-soft);"><span>📈 Conversion rate (Học viên / Tổng Leads):</span> <strong id="conversionRate" style="color:var(--green);">—</strong></div>
         </div>
@@ -705,15 +716,68 @@ function entryCourseCount(e){
 function entryServiceRev(e){ return getBranch(e.branchId).type === 'spa' ? (e.revenue?.service || 0) : 0; }
 function entryProductRev(e){ return getBranch(e.branchId).type === 'spa' ? (e.revenue?.product || 0) : 0; }
 function entryCourseRev(e){ return getBranch(e.branchId).type === 'academy' ? entryRevenue(e) : 0; }
-// Promotions / discounts entered per week (single VND amount). Backwards compat: missing => 0.
-function entryPromotions(e){ return e.promotions || 0; }
-// Gross = sum of service + product + courses (for the entry's branch type)
+// === Per-category promotions (giảm trừ khuyến mãi) ===
+// Storage: spa → e.promotions = { service: N, product: N }; academy → e.courses[id].promotion
+// Backwards compat: if e.promotions is a number, distribute proportionally to gross revenue.
+function _legacyPromoSplit(e){
+  if (typeof e.promotions !== 'number' || e.promotions <= 0) return { service: 0, product: 0, courses: 0 };
+  const sv = e.revenue?.service || 0, pd = e.revenue?.product || 0;
+  const cr = COURSES.reduce((a,c)=> a + (e.courses?.[c.id]?.revenue || 0), 0);
+  const tot = sv + pd + cr;
+  if (tot === 0) return { service: 0, product: 0, courses: 0 };
+  return {
+    service: Math.round(e.promotions * sv / tot),
+    product: Math.round(e.promotions * pd / tot),
+    courses: Math.round(e.promotions * cr / tot)
+  };
+}
+function entryServicePromo(e){
+  if (getBranch(e.branchId).type !== 'spa') return 0;
+  if (e.promotions && typeof e.promotions === 'object') return e.promotions.service || 0;
+  return _legacyPromoSplit(e).service;
+}
+function entryProductPromo(e){
+  if (getBranch(e.branchId).type !== 'spa') return 0;
+  if (e.promotions && typeof e.promotions === 'object') return e.promotions.product || 0;
+  return _legacyPromoSplit(e).product;
+}
+function entryCoursePromo(e, courseId){
+  if (getBranch(e.branchId).type !== 'academy') return 0;
+  const cp = e.courses?.[courseId]?.promotion;
+  if (typeof cp === 'number') return cp;
+  // Fallback: legacy total-promo allocated proportionally to this course's gross
+  if (typeof e.promotions === 'number' && e.promotions > 0) {
+    const totG = COURSES.reduce((a,c)=> a + (e.courses?.[c.id]?.revenue || 0), 0);
+    if (totG === 0) return 0;
+    const cg = e.courses?.[courseId]?.revenue || 0;
+    return Math.round(e.promotions * cg / totG);
+  }
+  return 0;
+}
+function entryServiceNet(e){ return Math.max(0, entryServiceRev(e) - entryServicePromo(e)); }
+function entryProductNet(e){ return Math.max(0, entryProductRev(e) - entryProductPromo(e)); }
+function entryCourseNet(e, courseId){
+  const g = e.courses?.[courseId]?.revenue || 0;
+  return Math.max(0, g - entryCoursePromo(e, courseId));
+}
+// Total promotions = sum of all categories
+function entryPromotions(e){
+  const b = getBranch(e.branchId);
+  if (b.type === 'spa') return entryServicePromo(e) + entryProductPromo(e);
+  if (b.type === 'academy') return COURSES.reduce((a,c)=> a + entryCoursePromo(e, c.id), 0);
+  return 0;
+}
+// Gross = sum of categories (existing entryRevenue)
 function entryGrossRevenue(e){ return entryRevenue(e); }
-// Net = max(0, gross − promotions)
+// Net = max(0, gross − total promo)
 function entryNetRevenue(e){ return Math.max(0, entryGrossRevenue(e) - entryPromotions(e)); }
-// Period helpers (apply to aggregated periods produced by aggregateByPeriod)
+// Period helpers
 function periodGrossRevenue(p){ return (p.revenue?.service||0) + (p.revenue?.product||0) + (p.revenue?.courses||0); }
-function periodNetRevenue(p){ return Math.max(0, periodGrossRevenue(p) - (p.promotions||0)); }
+function periodTotalPromo(p){ return (p.promotions?.service||0) + (p.promotions?.product||0) + (p.promotions?.courses||0); }
+function periodNetRevenue(p){ return Math.max(0, periodGrossRevenue(p) - periodTotalPromo(p)); }
+function periodNetService(p){ return Math.max(0, (p.revenue?.service||0) - (p.promotions?.service||0)); }
+function periodNetProduct(p){ return Math.max(0, (p.revenue?.product||0) - (p.promotions?.product||0)); }
+function periodNetCourses(p){ return Math.max(0, (p.revenue?.courses||0) - (p.promotions?.courses||0)); }
 
 /* ==========================================================
    STORAGE & SEED
@@ -748,12 +812,17 @@ function seedSampleData(){
         sources[src.id] = v;
         assigned += v;
       });
-      const grossRev = Math.round(s.svc * t * noise / 1000) * 1000 + Math.round(s.prod * t * noise / 1000) * 1000;
-      const promoRate = 0.04 + Math.random() * 0.10; // 4–14%
+      const svcRev = Math.round(s.svc * t * noise / 1000) * 1000;
+      const prodRev = Math.round(s.prod * t * noise / 1000) * 1000;
+      const promoRateSvc = 0.03 + Math.random() * 0.10;  // 3–13%
+      const promoRateProd = 0.05 + Math.random() * 0.15; // 5–20% (sản phẩm hay khuyến mãi mạnh hơn)
       entries.push({
         id: uid(), branchId: bid, weekStart: toISODate(start), sources,
-        revenue: { service: Math.round(s.svc * t * noise / 1000) * 1000, product: Math.round(s.prod * t * noise / 1000) * 1000 },
-        promotions: Math.round(grossRev * promoRate / 1000) * 1000
+        revenue: { service: svcRev, product: prodRev },
+        promotions: {
+          service: Math.round(svcRev * promoRateSvc / 1000) * 1000,
+          product: Math.round(prodRev * promoRateProd / 1000) * 1000
+        }
       });
     });
     // SCA
@@ -791,13 +860,16 @@ function seedSampleData(){
         const count = idx === COURSES.length - 1 ? Math.max(0, totalEnroll - cAssigned) : baseCount;
         cAssigned += count;
         const priceVar = (0.95 + Math.random()*0.1);
-        courses[c.id] = { count, revenue: count * Math.round(cs.price * priceVar / 1000) * 1000 };
+        const courseRev = count * Math.round(cs.price * priceVar / 1000) * 1000;
+        const promoRate = 0.04 + Math.random() * 0.12; // 4–16%
+        courses[c.id] = {
+          count,
+          revenue: courseRev,
+          promotion: Math.round(courseRev * promoRate / 1000) * 1000
+        };
       });
-      const grossSca = Object.values(courses).reduce((a,c)=>a + c.revenue, 0);
-      const promoScaRate = 0.05 + Math.random() * 0.10; // 5–15%
       entries.push({
-        id: uid(), branchId: 'sca', weekStart: toISODate(start), sources, leads, courses,
-        promotions: Math.round(grossSca * promoScaRate / 1000) * 1000
+        id: uid(), branchId: 'sca', weekStart: toISODate(start), sources, leads, courses
       });
     }
   }
@@ -889,6 +961,7 @@ saveData(DATA);
 let activeMode = 'monthly';     // 'monthly' | 'weekly'
 let activeBranch = 'all';
 let activeView = 'overview';    // 'overview' | 'customers' | 'service' | 'product' | 'courses' | 'leads' | 'students' | 'conversion'
+let revenueMode = 'net';        // 'net' | 'gross' | 'promo' — what revenue figure to show on dashboard
 let dateRange = defaultDateRange(activeMode);  // weekly = last 10 weeks, monthly = last 12 months
 let metricToggles = { leads: true, customers: true, courses: true, revenue: true };  // for SCA dashboard
 let studentCourseToggles = { leads: true, customers: true, courses: true };  // for SCA leads/students/courses chart
@@ -925,9 +998,9 @@ function aggregateByPeriod(branchId, mode){
         key, label: getLabel(key),
         sources: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
         leads: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
-        courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0},o),{}),
+        courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0,promotion:0},o),{}),
         revenue: { service: 0, product: 0, courses: 0 },
-        promotions: 0,
+        promotions: { service: 0, product: 0, courses: 0 },
         returning: 0,
         newCustTotal: 0,
         leadsTotal: 0,
@@ -953,12 +1026,17 @@ function aggregateByPeriod(branchId, mode){
       COURSES.forEach(c => {
         p.courses[c.id].count += (e.courses?.[c.id]?.count || 0);
         p.courses[c.id].revenue += (e.courses?.[c.id]?.revenue || 0);
+        p.courses[c.id].promotion += entryCoursePromo(e, c.id);
       });
       p.revenue.courses += entryCourseRev(e);
     }
     p.revenue.service += entryServiceRev(e);
     p.revenue.product += entryProductRev(e);
-    p.promotions += entryPromotions(e);
+    p.promotions.service += entryServicePromo(e);
+    p.promotions.product += entryProductPromo(e);
+    if (branch.type === 'academy') {
+      COURSES.forEach(c => { p.promotions.courses += entryCoursePromo(e, c.id); });
+    }
     // Aggregate totals (use manual totals as source of truth)
     p.totalNewCust = p.newCustTotal;
     if (branch.type === 'academy') {
@@ -980,9 +1058,9 @@ function aggregateByPeriod(branchId, mode){
       key, label: m === 'monthly' ? monthLabel(key) : weekLabel(key),
       sources: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
       leads: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
-      courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0},o),{}),
+      courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0,promotion:0},o),{}),
       revenue: { service: 0, product: 0, courses: 0 },
-      promotions: 0,
+      promotions: { service: 0, product: 0, courses: 0 },
       returning: 0, newCustTotal: 0, leadsTotal: 0, studentTotal: 0,
       totalCust: 0, totalNewCust: 0, totalLeads: 0, totalCourses: 0
     };
@@ -1134,9 +1212,9 @@ function renderStats(){
   const emptyP = () => ({
     sources: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
     leads: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
-    courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0},o),{}),
+    courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0,promotion:0},o),{}),
     revenue: { service: 0, product: 0, courses: 0 },
-    promotions: 0,
+    promotions: { service: 0, product: 0, courses: 0 },
     totalCust: 0, totalLeads: 0, totalCourses: 0
   });
   const cur = periods.find(p => p.key === curKey) || emptyP();
@@ -1156,35 +1234,46 @@ function renderStats(){
     svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0114 0M16 11a4 4 0 100-8M22 21a7 7 0 00-5-6.7"/></svg>'
   });
 
+  // Revenue mode helpers — used to label and pick the right number based on revenueMode
+  const modeLabel = revenueMode === 'net' ? 'thuần' : revenueMode === 'gross' ? 'gộp' : 'KM';
+  const pickSvc = (period) => {
+    const g = period.revenue?.service || 0;
+    const promo = period.promotions?.service || 0;
+    if (revenueMode === 'gross') return g;
+    if (revenueMode === 'promo') return promo;
+    return Math.max(0, g - promo);
+  };
+  const pickProd = (period) => {
+    const g = period.revenue?.product || 0;
+    const promo = period.promotions?.product || 0;
+    if (revenueMode === 'gross') return g;
+    if (revenueMode === 'promo') return promo;
+    return Math.max(0, g - promo);
+  };
+  const pickCourse = (period) => {
+    const g = period.revenue?.courses || 0;
+    const promo = period.promotions?.courses || 0;
+    if (revenueMode === 'gross') return g;
+    if (revenueMode === 'promo') return promo;
+    return Math.max(0, g - promo);
+  };
+  const pickAll = (period) => pickSvc(period) + pickProd(period) + pickCourse(period);
+
   if (ctx.branch.type === 'spa' || (ctx.branch.type === 'all' && !ctx.showAcademy)) {
     // Pure SPA view
     stats.push({
-      label: 'DT dịch vụ', value: fmtVND(cur.revenue.service || 0), icon: 'blue',
-      delta: pct(cur.revenue.service || 0, prev.revenue.service || 0),
+      label: `DT dịch vụ (${modeLabel})`, value: fmtVND(pickSvc(cur)), icon: 'blue',
+      delta: pct(pickSvc(cur), pickSvc(prev)),
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v6a4 4 0 11-8 0V6a4 4 0 014-4z"/><path d="M19 10v2a7 7 0 11-14 0v-2"/></svg>'
     });
     stats.push({
-      label: 'DT sản phẩm', value: fmtVND(cur.revenue.product || 0), icon: 'yellow',
-      delta: pct(cur.revenue.product || 0, prev.revenue.product || 0),
+      label: `DT sản phẩm (${modeLabel})`, value: fmtVND(pickProd(cur)), icon: 'yellow',
+      delta: pct(pickProd(cur), pickProd(prev)),
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 11-8 0"/></svg>'
     });
-    const curGross = (cur.revenue.service || 0) + (cur.revenue.product || 0);
-    const prevGross = (prev.revenue.service || 0) + (prev.revenue.product || 0);
-    const curPromo = cur.promotions || 0;
-    const prevPromo = prev.promotions || 0;
-    const curNet = Math.max(0, curGross - curPromo);
-    const prevNet = Math.max(0, prevGross - prevPromo);
     stats.push({
-      label: 'Doanh thu gộp', value: fmtVND(curGross), icon: 'purple', delta: pct(curGross, prevGross),
+      label: `Tổng DT (${modeLabel})`, value: fmtVND(pickAll(cur)), icon: revenueMode === 'promo' ? 'pink' : 'green', delta: pct(pickAll(cur), pickAll(prev)),
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>'
-    });
-    stats.push({
-      label: 'Khuyến mãi', value: fmtVND(curPromo), icon: 'pink', delta: pct(curPromo, prevPromo),
-      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 110-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-4"/><path d="M18 12a2 2 0 100 4h4v-4z"/></svg>'
-    });
-    stats.push({
-      label: 'Doanh thu thuần', value: fmtVND(curNet), icon: 'green', delta: pct(curNet, prevNet),
-      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>'
     });
   } else if (ctx.branch.type === 'academy') {
     // SCA: Leads · Học viên · Khoá học · Doanh thu
@@ -1206,57 +1295,29 @@ function renderStats(){
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7l10-4 10 4-10 4z"/><path d="M6 9v5c0 2 3 3 6 3s6-1 6-3V9"/></svg>'
     });
     stats.push({
-      label: 'Doanh thu gộp', value: fmtVND(cur.revenue.courses || 0), icon: 'yellow',
-      delta: pct(cur.revenue.courses || 0, prev.revenue.courses || 0),
+      label: `Doanh thu (${modeLabel})`, value: fmtVND(pickCourse(cur)), icon: revenueMode === 'promo' ? 'pink' : 'yellow',
+      delta: pct(pickCourse(cur), pickCourse(prev)),
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>'
     });
-    {
-      const curG = cur.revenue.courses || 0;
-      const prevG = prev.revenue.courses || 0;
-      const curPromo = cur.promotions || 0;
-      const prevPromo = prev.promotions || 0;
-      const curNet = Math.max(0, curG - curPromo);
-      const prevNet = Math.max(0, prevG - prevPromo);
-      stats.push({
-        label: 'Khuyến mãi', value: fmtVND(curPromo), icon: 'pink', delta: pct(curPromo, prevPromo),
-        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 110-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-4"/><path d="M18 12a2 2 0 100 4h4v-4z"/></svg>'
-      });
-      stats.push({
-        label: 'Doanh thu thuần', value: fmtVND(curNet), icon: 'green', delta: pct(curNet, prevNet),
-        svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>'
-      });
-    }
   } else {
     // ALL branches mixed
-    const curSpa = (cur.revenue.service || 0) + (cur.revenue.product || 0);
-    const prevSpa = (prev.revenue.service || 0) + (prev.revenue.product || 0);
-    const curSca = cur.revenue.courses || 0;
-    const prevSca = prev.revenue.courses || 0;
-    const curGross = curSpa + curSca;
-    const prevGross = prevSpa + prevSca;
-    const curPromo = cur.promotions || 0;
-    const prevPromo = prev.promotions || 0;
-    const curNet = Math.max(0, curGross - curPromo);
-    const prevNet = Math.max(0, prevGross - prevPromo);
+    const curSpa = pickSvc(cur) + pickProd(cur);
+    const prevSpa = pickSvc(prev) + pickProd(prev);
+    const curSca = pickCourse(cur);
+    const prevSca = pickCourse(prev);
+    const curTot = curSpa + curSca;
+    const prevTot = prevSpa + prevSca;
     stats.push({
-      label: 'DT 3AM (Spa)', value: fmtVND(curSpa), icon: 'blue', delta: pct(curSpa, prevSpa),
+      label: `DT 3AM (${modeLabel})`, value: fmtVND(curSpa), icon: 'blue', delta: pct(curSpa, prevSpa),
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v6a4 4 0 11-8 0V6a4 4 0 014-4z"/><path d="M19 10v2a7 7 0 11-14 0v-2"/></svg>'
     });
     stats.push({
-      label: 'DT SCA (Học viện)', value: fmtVND(curSca), icon: 'purple', delta: pct(curSca, prevSca),
+      label: `DT SCA (${modeLabel})`, value: fmtVND(curSca), icon: 'purple', delta: pct(curSca, prevSca),
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7l10-4 10 4-10 4z"/><path d="M6 9v5c0 2 3 3 6 3s6-1 6-3V9"/></svg>'
     });
     stats.push({
-      label: 'Doanh thu gộp', value: fmtVND(curGross), icon: 'yellow', delta: pct(curGross, prevGross),
+      label: `Tổng DT (${modeLabel})`, value: fmtVND(curTot), icon: revenueMode === 'promo' ? 'pink' : 'green', delta: pct(curTot, prevTot),
       svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>'
-    });
-    stats.push({
-      label: 'Khuyến mãi', value: fmtVND(curPromo), icon: 'pink', delta: pct(curPromo, prevPromo),
-      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12V8H6a2 2 0 110-4h12v4"/><path d="M4 6v12a2 2 0 002 2h14v-4"/><path d="M18 12a2 2 0 100 4h4v-4z"/></svg>'
-    });
-    stats.push({
-      label: 'Doanh thu thuần', value: fmtVND(curNet), icon: 'green', delta: pct(curNet, prevNet),
-      svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>'
     });
   }
 
@@ -1300,15 +1361,36 @@ function renderMainChart(){
   let yLabel = 'tr';
   let title, subtitle;
 
+  // Helper to extract revenue value (per category) according to revenueMode
+  const _modeLabel = revenueMode === 'net' ? 'thuần' : revenueMode === 'gross' ? 'gộp' : 'KM';
+  const valSvc = (p) => {
+    const g = p.revenue?.service || 0; const pr = p.promotions?.service || 0;
+    if (revenueMode === 'gross') return g;
+    if (revenueMode === 'promo') return pr;
+    return Math.max(0, g - pr);
+  };
+  const valProd = (p) => {
+    const g = p.revenue?.product || 0; const pr = p.promotions?.product || 0;
+    if (revenueMode === 'gross') return g;
+    if (revenueMode === 'promo') return pr;
+    return Math.max(0, g - pr);
+  };
+  const valCourse = (p) => {
+    const g = p.revenue?.courses || 0; const pr = p.promotions?.courses || 0;
+    if (revenueMode === 'gross') return g;
+    if (revenueMode === 'promo') return pr;
+    return Math.max(0, g - pr);
+  };
+
   if (context.branch.type === 'academy' && activeView === 'overview') {
     // SCA: chỉ hiển thị doanh thu trên main chart
     datasets.push({
-      label: 'Doanh thu', data: periods.map(p => p.revenue.courses / 1_000_000),
+      label: `Doanh thu (${_modeLabel})`, data: periods.map(p => valCourse(p) / 1_000_000),
       borderColor: '#f59e0b', backgroundColor: makeGrad('rgba(245,158,11,.25)', 'rgba(245,158,11,0)'),
       borderWidth: 2.5, tension: 0.4, fill: true,
       pointBackgroundColor: '#fff', pointBorderColor: '#f59e0b', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
     });
-    title = 'Doanh thu SCA Academy — theo ' + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    title = `Doanh thu SCA Academy (${_modeLabel}) — theo ` + (activeMode === 'monthly' ? 'tháng' : 'tuần');
     subtitle = 'Đơn vị: triệu đồng';
   } else if (activeView === 'customers') {
     datasets.push({
@@ -1322,20 +1404,20 @@ function renderMainChart(){
     subtitle = 'Tổng số khách hàng qua các kỳ';
   } else if (activeView === 'service') {
     datasets.push({
-      label: 'DT dịch vụ', data: periods.map(p => p.revenue.service / 1_000_000),
+      label: `DT dịch vụ (${_modeLabel})`, data: periods.map(p => valSvc(p) / 1_000_000),
       borderColor: '#2563eb', backgroundColor: makeGrad('rgba(37,99,235,.25)','rgba(37,99,235,0)'),
       borderWidth: 2.5, tension: 0.4, fill: true,
       pointBackgroundColor: '#fff', pointBorderColor: '#2563eb', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
     });
-    title = 'Doanh thu dịch vụ'; subtitle = 'Đơn vị: triệu đồng';
+    title = `Doanh thu dịch vụ (${_modeLabel})`; subtitle = 'Đơn vị: triệu đồng';
   } else if (activeView === 'product') {
     datasets.push({
-      label: 'DT sản phẩm', data: periods.map(p => p.revenue.product / 1_000_000),
+      label: `DT sản phẩm (${_modeLabel})`, data: periods.map(p => valProd(p) / 1_000_000),
       borderColor: '#f59e0b', backgroundColor: makeGrad('rgba(245,158,11,.25)','rgba(245,158,11,0)'),
       borderWidth: 2.5, tension: 0.4, fill: true,
       pointBackgroundColor: '#fff', pointBorderColor: '#f59e0b', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
     });
-    title = 'Doanh thu bán hàng'; subtitle = 'Đơn vị: triệu đồng';
+    title = `Doanh thu bán hàng (${_modeLabel})`; subtitle = 'Đơn vị: triệu đồng';
   } else if (activeView === 'courses') {
     // stacked bar of course enrollments
     COURSES.forEach(c => {
@@ -1350,13 +1432,13 @@ function renderMainChart(){
     // overview
     if (context.showSpa) {
       datasets.push({
-        label: 'DT dịch vụ', data: periods.map(p => p.revenue.service / 1_000_000),
+        label: `DT dịch vụ (${_modeLabel})`, data: periods.map(p => valSvc(p) / 1_000_000),
         borderColor: '#2563eb', backgroundColor: makeGrad('rgba(37,99,235,.20)','rgba(37,99,235,0)'),
         borderWidth: 2.5, tension: 0.4, fill: true,
         pointBackgroundColor: '#fff', pointBorderColor: '#2563eb', pointBorderWidth: 2, pointRadius: 3, pointHoverRadius: 5
       });
       datasets.push({
-        label: 'DT sản phẩm', data: periods.map(p => p.revenue.product / 1_000_000),
+        label: `DT sản phẩm (${_modeLabel})`, data: periods.map(p => valProd(p) / 1_000_000),
         borderColor: '#f59e0b', backgroundColor: makeGrad('rgba(245,158,11,.20)','rgba(245,158,11,0)'),
         borderWidth: 2.5, tension: 0.4, fill: true,
         pointBackgroundColor: '#fff', pointBorderColor: '#f59e0b', pointBorderWidth: 2, pointRadius: 3, pointHoverRadius: 5
@@ -1364,13 +1446,13 @@ function renderMainChart(){
     }
     if (context.showAcademy) {
       datasets.push({
-        label: 'DT khoá học (SCA)', data: periods.map(p => p.revenue.courses / 1_000_000),
+        label: `DT khoá học (SCA, ${_modeLabel})`, data: periods.map(p => valCourse(p) / 1_000_000),
         borderColor: '#8b5cf6', backgroundColor: makeGrad('rgba(139,92,246,.20)','rgba(139,92,246,0)'),
         borderWidth: 2.5, tension: 0.4, fill: true,
         pointBackgroundColor: '#fff', pointBorderColor: '#8b5cf6', pointBorderWidth: 2, pointRadius: 3, pointHoverRadius: 5
       });
     }
-    title = 'Doanh thu theo ' + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    title = `Doanh thu (${_modeLabel}) theo ` + (activeMode === 'monthly' ? 'tháng' : 'tuần');
     subtitle = 'Đơn vị: triệu đồng';
   }
 
@@ -1518,11 +1600,19 @@ function renderCustomerChart(){
     label2Subtitle = 'Phân bố leads theo từng nguồn';
     valueLabel = 'leads';
   } else if (activeView === 'courses' && ctxData.showAcademy) {
+    const _modeLabel2 = revenueMode === 'net' ? 'thuần' : revenueMode === 'gross' ? 'gộp' : 'KM';
+    const valCourseId = (p, cid) => {
+      const g = p.courses[cid].revenue || 0;
+      const pr = p.courses[cid].promotion || 0;
+      if (revenueMode === 'gross') return g;
+      if (revenueMode === 'promo') return pr;
+      return Math.max(0, g - pr);
+    };
     datasets = COURSES.map(c => ({
-      label: c.name + ' (DT)', data: periods.map(p => p.courses[c.id].revenue / 1_000_000),
+      label: c.name + ` (${_modeLabel2})`, data: periods.map(p => valCourseId(p, c.id) / 1_000_000),
       backgroundColor: c.color, stack: 'r', borderRadius: 4, borderSkipped: false
     }));
-    label2Title = 'Doanh thu khoá học theo ' + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    label2Title = `Doanh thu khoá học (${_modeLabel2}) — theo ` + (activeMode === 'monthly' ? 'tháng' : 'tuần');
     label2Subtitle = 'Đơn vị: triệu đồng';
     valueLabel = 'tr';
   } else if (activeView === 'students' && ctxData.showAcademy) {
@@ -1987,10 +2077,22 @@ function renderAll(){
           <input type="number" min="0" step="1" data-course-count="${c.id}" placeholder="0" />
         </div>
         <div class="field">
-          <label>Doanh thu khoá này</label>
+          <label>DT gộp khoá này</label>
           <div class="field-money">
             <input type="number" min="0" step="1000" data-course-rev="${c.id}" placeholder="0" />
             <span class="suffix">VNĐ</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>🎁 Giảm trừ KM (khoá này)</label>
+          <div class="field-money">
+            <input type="number" min="0" step="1000" data-course-promo="${c.id}" placeholder="0" />
+            <span class="suffix">VNĐ</span>
+          </div>
+        </div>
+        <div class="field" style="display:flex;flex-direction:column;justify-content:flex-end;">
+          <div style="background:var(--green-soft);padding:10px 12px;border-radius:9px;font-size:12px;color:var(--text-muted);">
+            DT thuần: <strong data-course-net="${c.id}" style="color:var(--green);font-variant-numeric:tabular-nums;">0₫</strong>
           </div>
         </div>
       </div>
@@ -2105,25 +2207,40 @@ function recomputeTotals(){
     if (convDisplayEl) { convDisplayEl.textContent = '—'; convDisplayEl.style.color = 'var(--text-muted)'; }
   }
 
-  // SPA totals
+  // SPA totals (per-category gross/promo/net + total)
   const svc = parseInt($('#fService').value) || 0;
   const prod = parseInt($('#fProduct').value) || 0;
-  const promoSpa = parseInt($('#fPromoSpa').value) || 0;
+  const promoSvc = parseInt($('#fServicePromo')?.value) || 0;
+  const promoProd = parseInt($('#fProductPromo')?.value) || 0;
+  const netSvc = Math.max(0, svc - promoSvc);
+  const netProd = Math.max(0, prod - promoProd);
   const grossSpa = svc + prod;
+  const promoSpa = promoSvc + promoProd;
   const netSpa = Math.max(0, grossSpa - promoSpa);
-  $('#totalRevenueSpa') && ($('#totalRevenueSpa').textContent = fmtVND(grossSpa));
+  $('#netRevenueService') && ($('#netRevenueService').textContent = fmtVND(netSvc));
+  $('#netRevenueProduct') && ($('#netRevenueProduct').textContent = fmtVND(netProd));
   $('#grossRevenueSpa') && ($('#grossRevenueSpa').textContent = fmtVND(grossSpa));
+  $('#totalPromoSpa') && ($('#totalPromoSpa').textContent = fmtVND(promoSpa));
   $('#netRevenueSpa') && ($('#netRevenueSpa').textContent = fmtVND(netSpa));
 
-  // Academy course totals
-  let totalCourses = 0, totalCRev = 0;
+  // Academy course totals (per-course count/gross/promo/net + total)
+  let totalCourses = 0, totalCRev = 0, totalCPromo = 0;
   $$('[data-course-count]').forEach(i => totalCourses += (parseInt(i.value) || 0));
-  $$('[data-course-rev]').forEach(i => totalCRev += (parseInt(i.value) || 0));
-  const promoAca = parseInt($('#fPromoAca')?.value) || 0;
-  const netAca = Math.max(0, totalCRev - promoAca);
+  $$('[data-course-rev]').forEach(i => {
+    const cid = i.dataset.courseRev;
+    const rev = parseInt(i.value) || 0;
+    const promoEl = document.querySelector(`[data-course-promo="${cid}"]`);
+    const promo = parseInt(promoEl?.value) || 0;
+    const net = Math.max(0, rev - promo);
+    totalCRev += rev;
+    totalCPromo += promo;
+    const netEl = document.querySelector(`[data-course-net="${cid}"]`);
+    if (netEl) netEl.textContent = fmtVND(net);
+  });
+  const netAca = Math.max(0, totalCRev - totalCPromo);
   $('#totalCourses').textContent = fmtNum(totalCourses) + ' khoá';
   $('#totalRevenueAcademy').textContent = fmtVND(totalCRev);
-  $('#grossRevenueAcademy') && ($('#grossRevenueAcademy').textContent = fmtVND(totalCRev));
+  $('#totalPromoAca') && ($('#totalPromoAca').textContent = fmtVND(totalCPromo));
   $('#netRevenueAcademy') && ($('#netRevenueAcademy').textContent = fmtVND(netAca));
 
   const ws = $('#fWeekStart').value;
@@ -2132,8 +2249,8 @@ function recomputeTotals(){
 $('#leadRows').addEventListener('input', recomputeTotals);
 $('#fService').addEventListener('input', recomputeTotals);
 $('#fProduct').addEventListener('input', recomputeTotals);
-$('#fPromoSpa').addEventListener('input', recomputeTotals);
-$('#fPromoAca').addEventListener('input', recomputeTotals);
+$('#fServicePromo').addEventListener('input', recomputeTotals);
+$('#fProductPromo').addEventListener('input', recomputeTotals);
 $('#coursesContainer').addEventListener('input', recomputeTotals);
 $('#fWeekStart').addEventListener('change', () => {
   const v = $('#fWeekStart').value;
@@ -2164,13 +2281,14 @@ function openModal(entryId){
       $('#fStudentTotal').value = '';
       $('#fService').value = '';
       $('#fProduct').value = '';
-      $('#fPromoSpa').value = '';
-      $('#fPromoAca').value = '';
+      $('#fServicePromo').value = '';
+      $('#fProductPromo').value = '';
       $$('[data-course-count]').forEach(i => i.value = '');
       $$('[data-course-rev]').forEach(i => i.value = '');
+      $$('[data-course-promo]').forEach(i => i.value = '');
 
       if (b.type === 'spa') {
-        // 3AM: returning + newCustTotal (manual) + optional source rows + revenue
+        // 3AM: returning + newCustTotal (manual) + optional source rows + revenue + per-category promo
         $('#fReturning').value = e.returning || 0;
         $('#fNewCustTotal').value = e.newCustTotal || 0;
         SOURCES.forEach(s => {
@@ -2179,9 +2297,10 @@ function openModal(entryId){
         });
         $('#fService').value = e.revenue?.service || 0;
         $('#fProduct').value = e.revenue?.product || 0;
-        $('#fPromoSpa').value = e.promotions || 0;
+        $('#fServicePromo').value = entryServicePromo(e) || 0;
+        $('#fProductPromo').value = entryProductPromo(e) || 0;
       } else {
-        // SCA: leadsTotal (manual) + optional lead rows + studentTotal + courses
+        // SCA: leadsTotal (manual) + optional lead rows + studentTotal + per-course (count + gross + promo)
         $('#fLeadsTotal').value = e.leadsTotal || 0;
         SOURCES.forEach(s => {
           const v = e.leads?.[s.id] || 0;
@@ -2190,7 +2309,7 @@ function openModal(entryId){
         $('#fStudentTotal').value = e.studentTotal || 0;
         $$('[data-course-count]').forEach(i => { i.value = e.courses?.[i.dataset.courseCount]?.count || 0; });
         $$('[data-course-rev]').forEach(i => { i.value = e.courses?.[i.dataset.courseRev]?.revenue || 0; });
-        $('#fPromoAca').value = e.promotions || 0;
+        $$('[data-course-promo]').forEach(i => { i.value = entryCoursePromo(e, i.dataset.coursePromo) || 0; });
       }
     }
   } else {
@@ -2203,9 +2322,10 @@ function openModal(entryId){
     clearSourceRows();
     clearLeadRows();
     $('#fService').value = ''; $('#fProduct').value = '';
-    $('#fPromoSpa').value = ''; $('#fPromoAca').value = '';
+    $('#fServicePromo').value = ''; $('#fProductPromo').value = '';
     $$('[data-course-count]').forEach(i => i.value = '');
     $$('[data-course-rev]').forEach(i => i.value = '');
+    $$('[data-course-promo]').forEach(i => i.value = '');
   }
   updateFormForBranch();
   recomputeTotals();
@@ -2239,7 +2359,10 @@ $('#modalSave').onclick = () => {
       service: parseInt($('#fService').value) || 0,
       product: parseInt($('#fProduct').value) || 0
     };
-    payload.promotions = parseInt($('#fPromoSpa').value) || 0;
+    payload.promotions = {
+      service: parseInt($('#fServicePromo').value) || 0,
+      product: parseInt($('#fProductPromo').value) || 0
+    };
   } else {
     // SCA: leadsTotal (manual) + leads (optional detail) + studentTotal + courses
     const leads = SOURCES.reduce((o,s)=>(o[s.id]=0,o),{});
@@ -2255,9 +2378,9 @@ $('#modalSave').onclick = () => {
     COURSES.forEach(c => {
       const cnt = parseInt($(`[data-course-count="${c.id}"]`).value) || 0;
       const rev = parseInt($(`[data-course-rev="${c.id}"]`).value) || 0;
-      payload.courses[c.id] = { count: cnt, revenue: rev };
+      const pro = parseInt($(`[data-course-promo="${c.id}"]`).value) || 0;
+      payload.courses[c.id] = { count: cnt, revenue: rev, promotion: pro };
     });
-    payload.promotions = parseInt($('#fPromoAca').value) || 0;
   }
 
   if (id) {
@@ -2269,6 +2392,8 @@ $('#modalSave').onclick = () => {
         delete e.courses; delete e.leads; delete e.leadsTotal; delete e.studentTotal;
       } else {
         delete e.revenue; delete e.sources; delete e.returning; delete e.newCustTotal;
+        // Per-course promotion is the source of truth for academy; clear any legacy top-level promotions
+        delete e.promotions;
       }
     }
     showToast('Đã cập nhật');
@@ -2281,6 +2406,7 @@ $('#modalSave').onclick = () => {
         delete dup.courses; delete dup.leads; delete dup.leadsTotal; delete dup.studentTotal;
       } else {
         delete dup.revenue; delete dup.sources; delete dup.returning; delete dup.newCustTotal;
+        delete dup.promotions;
       }
     } else {
       DATA.entries.push({ id: uid(), ...payload });
@@ -2316,9 +2442,10 @@ $('#exportBtn').onclick = () => {
                    'Tổng khách mới','Khách cũ','Tổng khách / Học viên',
                    ...SOURCES.map(s=>'Khách mới chi tiết ' + s.name),
                    'Conversion %',
-                   'DT Dịch vụ','DT Sản phẩm',
-                   ...COURSES.flatMap(c => [c.name + ' (số khoá)', c.name + ' (DT)']),
-                   'Tổng khoá','DT gộp','Khuyến mãi','DT thuần'];
+                   'DT DV gộp','KM DV','DT DV thuần',
+                   'DT SP gộp','KM SP','DT SP thuần',
+                   ...COURSES.flatMap(c => [c.name + ' (số khoá)', c.name + ' (DT gộp)', c.name + ' (KM)', c.name + ' (DT thuần)']),
+                   'Tổng khoá','Tổng DT gộp','Tổng KM','Tổng DT thuần'];
   const rows = entries.map(e => {
     const b = getBranch(e.branchId);
     const totalC = entryCustomers(e);
@@ -2326,10 +2453,16 @@ $('#exportBtn').onclick = () => {
     const totalRetC = entryReturning(e);
     const totalL = entryLeads(e);
     const totalK = entryCourseCount(e);
-    const totalR = entryRevenue(e);
-    const promo = entryPromotions(e);
-    const netR = entryNetRevenue(e);
+    const totalGross = entryRevenue(e);
+    const totalPromo = entryPromotions(e);
+    const totalNet = entryNetRevenue(e);
     const conv = totalL ? ((totalC/totalL)*100).toFixed(1) : '';
+    const svcG = e.revenue?.service || 0;
+    const svcP = entryServicePromo(e);
+    const svcN = Math.max(0, svcG - svcP);
+    const prdG = e.revenue?.product || 0;
+    const prdP = entryProductPromo(e);
+    const prdN = Math.max(0, prdG - prdP);
     return [
       e.weekStart, toISODate(endOfWeek(new Date(e.weekStart))), b.name, b.type === 'spa' ? 'Spa' : 'Học viện',
       totalL,
@@ -2337,9 +2470,15 @@ $('#exportBtn').onclick = () => {
       totalNewC, totalRetC, totalC,
       ...SOURCES.map(s => e.sources?.[s.id] || 0),
       conv,
-      e.revenue?.service || 0, e.revenue?.product || 0,
-      ...COURSES.flatMap(c => [e.courses?.[c.id]?.count || 0, e.courses?.[c.id]?.revenue || 0]),
-      totalK, totalR, promo, netR
+      svcG, svcP, svcN,
+      prdG, prdP, prdN,
+      ...COURSES.flatMap(c => {
+        const cg = e.courses?.[c.id]?.revenue || 0;
+        const cp = entryCoursePromo(e, c.id);
+        const cn = Math.max(0, cg - cp);
+        return [e.courses?.[c.id]?.count || 0, cg, cp, cn];
+      }),
+      totalK, totalGross, totalPromo, totalNet
     ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(',');
   });
   const csv = '\uFEFF' + headers.map(h => `"${h}"`).join(',') + '\n' + rows.join('\n');
@@ -2402,6 +2541,15 @@ $$('.sidebar .nav-item').forEach(el => {
       dateRange = defaultDateRange(activeMode);  // weekly: last 10 weeks; monthly: last 12 months
       updateRangeUI();
     }
+    renderAll();
+  };
+});
+
+// Revenue mode toggle (DT thuần / DT gộp / Giảm trừ KM)
+$$('#revenueModeToggle .metric-toggle').forEach(el => {
+  el.onclick = () => {
+    revenueMode = el.dataset.mode;
+    $$('#revenueModeToggle .metric-toggle').forEach(x => x.classList.toggle('on', x.dataset.mode === revenueMode));
     renderAll();
   };
 });
