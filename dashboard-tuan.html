@@ -625,7 +625,7 @@
 const BRANCHES = [
   { id: 'all',     name: 'Toàn hệ thống 3AM',           type: 'all',     color: '#1a2238' },
   { id: 'tx-soan', name: "3AM D'SPA · Trần Xuân Soạn",  type: 'spa',     color: '#ef4444' },
-  { id: 'cau-giay',name: "3AM D'SPA · Cầu Giấy",        type: 'spa',     color: '#f59e0b' },
+  { id: 'quan-hoa',name: "3AM D'SPA · Quan Hoa",        type: 'spa',     color: '#f59e0b' },
   { id: 'ha-dong', name: "3AM D'SPA · Hà Đông",         type: 'spa',     color: '#10b981' },
   { id: 'sca',     name: 'SCA Academy',                  type: 'academy', color: '#8b5cf6' }
 ];
@@ -791,7 +791,7 @@ function seedSampleData(){
   // 12 weeks of data so monthly view has ~3 months
   const spaSeed = {
     'tx-soan': { svc: 720_000_000, prod: 180_000_000, cust: 145, growth: 1.02 },
-    'cau-giay':{ svc: 540_000_000, prod: 130_000_000, cust: 110, growth: 1.03 },
+    'quan-hoa':{ svc: 540_000_000, prod: 130_000_000, cust: 110, growth: 1.03 },
     'ha-dong': { svc: 480_000_000, prod: 110_000_000, cust: 95,  growth: 1.015 }
   };
   const scaSeed = { custBase: 6, growth: 1.04, courses: { therapist: { count: 3, price: 12_000_000 }, consultant: { count: 2, price: 25_000_000 }, expert: { count: 1, price: 45_000_000 } } };
@@ -920,73 +920,105 @@ function seedRealData(){
     entries: [
       // ============================================================
       // 3AM D'SPA TRẦN XUÂN SOẠN — DỮ LIỆU THỰC TẾ
-      // Nguồn: file export 10,000 transactions (14/9/2025 → 26/4/2026)
+      // Nguồn: file export 10,000 transactions (1/1/2025 → 26/4/2026)
       // Khách mới = customer first-time tuần đó; Khách cũ = customer đã đến trước
+      // Tổng GD: 10,000 | Doanh thu gộp: 3.25 tỷ | KM: 127 triệu
       // ============================================================
-      txs('tx-soan', '2025-09-08',  20,   0,   6390000,   127500),
-      txs('tx-soan', '2025-09-15', 338,   4, 110508000,  3633000),
-      txs('tx-soan', '2025-09-22', 262,  77, 109810000,  3988500),
-      txs('tx-soan', '2025-09-29', 195, 117, 103203000,  2871900),
-      txs('tx-soan', '2025-10-06', 153, 149,  93233000,  3501500),
-      txs('tx-soan', '2025-10-13', 167, 176, 135603000, 12246950),
-      txs('tx-soan', '2025-10-20', 127, 179, 101474000,  3382000),
-      txs('tx-soan', '2025-10-27', 106, 193,  96008000,  5451500),
-      txs('tx-soan', '2025-11-03',  81, 221,  96315000,  2615000),
-      txs('tx-soan', '2025-11-10',  90, 221, 102879000,  2696500),
-      txs('tx-soan', '2025-11-17',  61, 227,  92111000,  2964500),
-      txs('tx-soan', '2025-11-24',  85, 231, 100606000,  3413000),
-      txs('tx-soan', '2025-12-01',  69, 215,  95457000,  4097100),
-      txs('tx-soan', '2025-12-08',  63, 226,  95599000,  2996500),
-      txs('tx-soan', '2025-12-15',  63, 227, 100843000,  3454600),
-      txs('tx-soan', '2025-12-22',  50, 174,  81903000,  3296300),
-      txs('tx-soan', '2025-12-29',  52, 203,  92434000,  3156100),
-      txs('tx-soan', '2026-01-05',  48, 234,  97305000,  3867900),
-      txs('tx-soan', '2026-01-12',  63, 250, 109298000,  3739000),
-      txs('tx-soan', '2026-01-19',  51, 185,  77705000,  2115900),
-      txs('tx-soan', '2026-01-26',  62, 264, 120286000,  4898000),
-      txs('tx-soan', '2026-02-02',  51, 301, 125480000,  4624700),
-      txs('tx-soan', '2026-02-09',  62, 291, 142390800,  6505800),
-      txs('tx-soan', '2026-02-23',  50, 218, 109643000,  8184500),
-      txs('tx-soan', '2026-03-02',  39, 246, 109734000,  4304000),
-      txs('tx-soan', '2026-03-09',  46, 226, 104057000,  3726300),
-      txs('tx-soan', '2026-03-16',  49, 242, 102697000,  3109400),
-      txs('tx-soan', '2026-03-23',  38, 253, 104155000,  3213300),
-      txs('tx-soan', '2026-03-30',  54, 214, 100222000,  2781700),
-      txs('tx-soan', '2026-04-06',  35, 239, 104570000,  4405200),
-      txs('tx-soan', '2026-04-13',  27, 253, 118369000,  4395600),
-      txs('tx-soan', '2026-04-20',  47, 256, 111210000,  3255300),
+      txs('tx-soan', '2025-09-08',  20,   2,   6390000,    127500),
+      txs('tx-soan', '2025-09-15', 339,  48, 110508000,   3633000),
+      txs('tx-soan', '2025-09-22', 262, 102, 109810000,   3988500),
+      txs('tx-soan', '2025-09-29', 195, 139, 103203000,   2871900),
+      txs('tx-soan', '2025-10-06', 153, 157,  93233000,   3501500),
+      txs('tx-soan', '2025-10-13', 167, 186, 135603000,  12246950),
+      txs('tx-soan', '2025-10-20', 127, 183, 101474000,   3382000),
+      txs('tx-soan', '2025-10-27', 106, 196,  96008000,   5451500),
+      txs('tx-soan', '2025-11-03',  81, 223,  96315000,   2615000),
+      txs('tx-soan', '2025-11-10',  90, 224, 102879000,   2696500),
+      txs('tx-soan', '2025-11-17',  61, 228,  92111000,   2964500),
+      txs('tx-soan', '2025-11-24',  85, 239, 100606000,   3413000),
+      txs('tx-soan', '2025-12-01',  70, 216,  95457000,   4097100),
+      txs('tx-soan', '2025-12-08',  64, 227,  95599000,   2996500),
+      txs('tx-soan', '2025-12-15',  63, 227, 100843000,   3454600),
+      txs('tx-soan', '2025-12-22',  50, 175,  81903000,   3296300),
+      txs('tx-soan', '2025-12-29',  52, 206,  92434000,   3156100),
+      txs('tx-soan', '2026-01-05',  48, 235,  97305000,   3867900),
+      txs('tx-soan', '2026-01-12',  63, 252, 109298000,   3739000),
+      txs('tx-soan', '2026-01-19',  51, 190,  77705000,   2115900),
+      txs('tx-soan', '2026-01-26',  62, 267, 120286000,   4898000),
+      txs('tx-soan', '2026-02-02',  51, 301, 125480000,   4624700),
+      txs('tx-soan', '2026-02-09',  62, 291, 142390800,   6505800),
+      txs('tx-soan', '2026-02-23',  50, 218, 109643000,   8184500),
+      txs('tx-soan', '2026-03-02',  39, 246, 109734000,   4304000),
+      txs('tx-soan', '2026-03-09',  46, 226, 104057000,   3726300),
+      txs('tx-soan', '2026-03-16',  49, 242, 102697000,   3109400),
+      txs('tx-soan', '2026-03-23',  38, 254, 104155000,   3213300),
+      txs('tx-soan', '2026-03-30',  55, 215, 100222000,   2781700),
+      txs('tx-soan', '2026-04-06',  35, 239, 104570000,   4405200),
+      txs('tx-soan', '2026-04-13',  27, 255, 118369000,   4395600),
+      txs('tx-soan', '2026-04-20',  47, 258, 111210000,   3255300),
 
-      // ===== CAU-GIAY, HA-DONG, SCA: TUẦN 9/3 - 15/3 (data cũ, chờ user upload file thật) =====
-      spa('cau-giay', '2026-03-09', 231,  78237000),
+      // ============================================================
+      // 3AM D'SPA QUAN HOA — DỮ LIỆU THỰC TẾ
+      // Nguồn: file export 7,380 transactions (1/1/2025 → 26/4/2026)
+      // Tổng GD: 7,380 | Doanh thu gộp: 2.42 tỷ | KM: 130 triệu
+      // ============================================================
+      txs('quan-hoa', '2025-09-08',  48,   8,  15630000,    386500),
+      txs('quan-hoa', '2025-09-15', 279,  40, 101321000,   4286500),
+      txs('quan-hoa', '2025-09-22', 158,  86,  75672000,   3666000),
+      txs('quan-hoa', '2025-09-29', 129,  87,  69133000,   3199500),
+      txs('quan-hoa', '2025-10-06', 135, 122,  93468000,   7485500),
+      txs('quan-hoa', '2025-10-13', 130, 141,  89224000,   3840000),
+      txs('quan-hoa', '2025-10-20',  79, 148,  81083000,   3876500),
+      txs('quan-hoa', '2025-10-27',  83, 155,  75932000,   3794500),
+      txs('quan-hoa', '2025-11-03',  74, 150,  76695000,   5294500),
+      txs('quan-hoa', '2025-11-10',  90, 169,  86195000,   4248000),
+      txs('quan-hoa', '2025-11-17',  67, 163,  80173000,   4404000),
+      txs('quan-hoa', '2025-11-24',  66, 161,  70495000,   3727500),
+      txs('quan-hoa', '2025-12-01',  47, 173,  75394000,   4858500),
+      txs('quan-hoa', '2025-12-08',  60, 169,  86691000,   6810500),
+      txs('quan-hoa', '2025-12-15',  44, 146,  69525000,   3201700),
+      txs('quan-hoa', '2025-12-22',  63, 160,  75474000,   3982000),
+      txs('quan-hoa', '2025-12-29',  35, 150,  66785000,   3713000),
+      txs('quan-hoa', '2026-01-05',  43, 150,  68360000,   3460500),
+      txs('quan-hoa', '2026-01-12',  46, 179,  90576000,   3961500),
+      txs('quan-hoa', '2026-01-19',  46, 147,  66598000,   3595500),
+      txs('quan-hoa', '2026-01-26',  48, 172,  79779000,   4747300),
+      txs('quan-hoa', '2026-02-02',  61, 179,  85882000,   4830000),
+      txs('quan-hoa', '2026-02-09',  43, 165,  79460000,   5964000),
+      txs('quan-hoa', '2026-02-23',  32, 156,  69827000,   5995700),
+      txs('quan-hoa', '2026-03-02',  35, 167,  76834000,   4155900),
+      txs('quan-hoa', '2026-03-09',  43, 165,  80635000,   4527000),
+      txs('quan-hoa', '2026-03-16',  40, 153,  70900000,   3439800),
+      txs('quan-hoa', '2026-03-23',  31, 166,  74611000,   2998600),
+      txs('quan-hoa', '2026-03-30',  45, 159,  72748000,   3800600),
+      txs('quan-hoa', '2026-04-06',  34, 160,  73153000,   2886900),
+      txs('quan-hoa', '2026-04-13',  19, 171,  66200000,   2523500),
+      txs('quan-hoa', '2026-04-20',  40, 169,  73715000,   2693800),
+
+      // ===== HA-DONG, SCA: TUẦN 9/3 - 15/3 (placeholder, chờ user upload file thật) =====
       spa('ha-dong',  '2026-03-09',  72,  22706000),
       sca('2026-03-09', 1, { therapist: 1 }),
 
       // ===== TUẦN 16/3 - 22/3 =====
-      spa('cau-giay', '2026-03-16', 212,  69490000),
       spa('ha-dong',  '2026-03-16',  65,  20523000),
 
       // ===== TUẦN 23/3 - 29/3 =====
-      spa('cau-giay', '2026-03-23', 212,  73419000),
       spa('ha-dong',  '2026-03-23',  85,  27465000),
       sca('2026-03-23', 2, { therapist: 1, consultant: 1 }),
 
       // ===== TUẦN 30/3 - 5/4 =====
-      spa('cau-giay', '2026-03-30', 217,  70482000),
       spa('ha-dong',  '2026-03-30',  92,  29307000),
       sca('2026-03-30', 3, { therapist: 3 }),
 
       // ===== TUẦN 6/4 - 12/4 =====
-      spa('cau-giay', '2026-04-06', 216,  72483000),
       spa('ha-dong',  '2026-04-06',  73,  26390000),
       sca('2026-04-06', 4, { therapist: 3, consultant: 1 }),
 
       // ===== TUẦN 13/4 - 19/4 =====
-      spa('cau-giay', '2026-04-13', 205,  65824000),
       spa('ha-dong',  '2026-04-13',  86,  27600000),
       sca('2026-04-13', 6, { therapist: 5, consultant: 1 }),
 
       // ===== TUẦN 20/4 - 26/4 =====
-      spa('cau-giay', '2026-04-20', 224,  73355000),
       spa('ha-dong',  '2026-04-20',  79,  26040000),
       sca('2026-04-20', 1, { therapist: 1 })
     ]
@@ -994,21 +1026,24 @@ function seedRealData(){
 }
 
 // Bump SEED_VERSION whenever seedRealData() changes meaningfully so we can detect stale localStorage
-const SEED_VERSION = 'tx-soan-real-2025-09';
+const SEED_VERSION = 'tx-soan-quan-hoa-2026-04-26';
 
 const _stored = loadData();
 let DATA;
 if (_stored && _stored._seedVersion === SEED_VERSION) {
   DATA = _stored;
 } else if (_stored) {
-  // Old localStorage exists but is from a previous seed version. Warn the user — don't auto-overwrite their work.
+  // SEED_VERSION đã thay đổi → auto-refresh sang dữ liệu mới nhất.
+  // Thông báo bằng console để người dùng biết.
   console.warn(
-    '%c[Weekly Tracking] Có dữ liệu mẫu mới hơn (' + SEED_VERSION + '). ' +
-    'Để tải lại dữ liệu mẫu mới, gõ vào console: resetData()\n' +
-    'CẢNH BÁO: mọi chỉnh sửa của bạn sẽ bị mất.',
+    '%c[Weekly Tracking] Đang tự động cập nhật dữ liệu mẫu mới (' + SEED_VERSION + '). ' +
+    'Mọi chỉnh sửa cũ đã được sao lưu vào localStorage key "ezs_dashboard_v8_backup".',
     'color:#dc2626;font-weight:bold;font-size:13px'
   );
-  DATA = _stored;
+  try { localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(_stored)); } catch(e){}
+  DATA = seedRealData();
+  DATA._seedVersion = SEED_VERSION;
+  saveData(DATA);
 } else {
   // No localStorage yet → first-time visit, load seed.
   DATA = seedRealData();
