@@ -3227,11 +3227,10 @@ async function loadDataAndRender() {
     data._seedVersion = SEED_VERSION;
   }
   // Migrate old data: ensure pnl/ktv embedded
-  // Force-replace pnl if it's from old format (keyed by Vietnamese labels) or missing.
-  // New format: each branch has {revenue:[], cost:[], profit:[]} arrays.
-  const isNewPnlFormat = data.pnl && data.pnl.tx_soan && Array.isArray(data.pnl.tx_soan.revenue);
-  if (!isNewPnlFormat) data.pnl = PNL_DATA;
-  if (!data.ktv) data.ktv = KTV_DATA;
+  // P&L and KTV are build-time data (embedded in code), not user-editable.
+  // Always overwrite from embedded constants so updates ship via code push.
+  data.pnl = PNL_DATA;
+  data.ktv = KTV_DATA;
 
   // Replace global DATA
   Object.keys(DATA).forEach(k => delete DATA[k]);
