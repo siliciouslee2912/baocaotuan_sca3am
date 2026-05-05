@@ -8,6 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root{
@@ -268,9 +271,102 @@
     .tabs { padding: 0 16px; }
     .form-grid.cols-2, .form-grid.cols-3 { grid-template-columns: 1fr; }
   }
+
+  /* ===== LOGIN OVERLAY ===== */
+  .login-overlay { position: fixed; inset: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  .login-overlay.hidden { display: none; }
+  .login-box { background: #fff; padding: 40px 36px; border-radius: 18px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); width: 100%; max-width: 400px; }
+  .login-box h2 { font-size: 22px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .login-box p.sub { color: var(--text-muted); font-size: 13px; margin-bottom: 22px; }
+  .login-box input[type="password"] { width: 100%; padding: 13px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; transition: border-color 0.15s; }
+  .login-box input[type="password"]:focus { outline: none; border-color: var(--primary); }
+  .login-box button { width: 100%; margin-top: 14px; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .login-box button:hover { background: var(--primary-dark, #5b6ee8); }
+  .login-box button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .login-error { color: #dc2626; font-size: 12.5px; margin-top: 10px; min-height: 18px; }
+  .login-status { color: var(--text-muted); font-size: 11.5px; margin-top: 14px; text-align: center; }
+  .login-status .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+  .login-status .dot.online { background: #22c55e; }
+  .login-status .dot.offline { background: #ef4444; }
+
+  /* ===== LOGOUT BUTTON in topbar ===== */
+  .logout-btn { background: none; border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; color: var(--text-muted); font-family: inherit; transition: all 0.15s; }
+  .logout-btn:hover { background: var(--bg); color: var(--text); }
+  .sync-indicator { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text-muted); padding: 4px 8px; }
+  .sync-indicator .dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
+  .sync-indicator.offline .dot { background: #ef4444; }
+  .sync-indicator.syncing .dot { background: #f59e0b; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ===== P&L (PROFIT) VIEW ===== */
+  .pnl-view { display: none; }
+  .pnl-view.active { display: block; }
+  .pnl-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; align-items: center; }
+  .pnl-period-toggle { display: flex; background: var(--bg); padding: 3px; border-radius: 9px; }
+  .pnl-period-toggle button { background: transparent; border: none; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; border-radius: 7px; color: var(--text-muted); font-family: inherit; transition: all 0.15s; }
+  .pnl-period-toggle button.on { background: var(--card); color: var(--primary); box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .pnl-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+  @media (max-width: 900px) { .pnl-summary-grid { grid-template-columns: 1fr 1fr; } }
+  .pnl-summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
+  .pnl-summary-card .label { font-size: 11.5px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .pnl-summary-card .value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .pnl-summary-card .sub { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+  .pnl-summary-card.profit .value.positive { color: #22c55e; }
+  .pnl-summary-card.profit .value.negative { color: #ef4444; }
+  .pnl-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .pnl-table th, .pnl-table td { padding: 9px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+  .pnl-table th:first-child, .pnl-table td:first-child { text-align: left; max-width: 280px; }
+  .pnl-table th { background: var(--bg); font-weight: 600; color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .pnl-table tr.section-header td { background: var(--bg); font-weight: 700; color: var(--text); padding-top: 12px; padding-bottom: 8px; }
+  .pnl-table tr.total-row td { font-weight: 700; background: #f0f4ff; border-top: 2px solid var(--primary); }
+  .pnl-table tr.profit-row td { font-weight: 700; background: #f0fdf4; border-top: 2px solid #22c55e; color: #15803d; }
+  .pnl-table tr.profit-row.negative td { background: #fef2f2; border-top-color: #ef4444; color: #b91c1c; }
+  .pnl-table td.indent { padding-left: 24px; color: var(--text-muted); font-weight: 400; }
+  .pnl-table td.text-positive { color: #22c55e; }
+  .pnl-table td.text-negative { color: #ef4444; }
+  .pnl-branches-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pnl-branches-tabs button { background: var(--card); border: 1px solid var(--border); padding: 8px 16px; border-radius: 9px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-muted); font-family: inherit; transition: all 0.15s; }
+  .pnl-branches-tabs button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+  /* ===== KTV (STAFF) VIEW ===== */
+  .ktv-view { display: none; }
+  .ktv-view.active { display: block; }
+  .ktv-leader-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  @media (max-width: 1100px) { .ktv-leader-grid { grid-template-columns: 1fr; } }
+  .ktv-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .ktv-table th, .ktv-table td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--border); }
+  .ktv-table th:first-child, .ktv-table td:first-child, .ktv-table td.name-col { text-align: left; }
+  .ktv-table th { background: var(--bg); font-weight: 600; color: var(--text-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .ktv-table tr.clickable { cursor: pointer; transition: background 0.15s; }
+  .ktv-table tr.clickable:hover { background: var(--bg); }
+  .ktv-rank-badge { display: inline-block; min-width: 24px; padding: 2px 7px; border-radius: 6px; font-size: 11px; font-weight: 700; text-align: center; margin-right: 8px; }
+  .ktv-rank-badge.top1 { background: #fef3c7; color: #92400e; }
+  .ktv-rank-badge.top2 { background: #e0f2fe; color: #0369a1; }
+  .ktv-rank-badge.top3 { background: #fce7f3; color: #be185d; }
+  .ktv-rank-badge.other { background: var(--bg); color: var(--text-muted); }
+  .ktv-detail-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
+  .ktv-detail-modal.show { display: flex; }
+  .ktv-detail-box { background: var(--card); border-radius: 14px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; }
+  .ktv-detail-box h3 { margin-bottom: 4px; }
+  .ktv-services-list { list-style: none; padding: 0; margin-top: 8px; }
+  .ktv-services-list li { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 13px; }
+  .ktv-services-list li:last-child { border-bottom: none; }
+  .modal-close-x { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); float: right; line-height: 1; padding: 0; }
 </style>
 </head>
 <body>
+<!-- ============== LOGIN OVERLAY ============== -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-box">
+    <h2>🔐 Dashboard 3AM &amp; SCA</h2>
+    <p class="sub">Nhập mật khẩu chung để truy cập</p>
+    <input type="password" id="loginPwInput" placeholder="Mật khẩu..." autocomplete="current-password" />
+    <button id="loginBtn">Đăng nhập</button>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-status" id="loginStatus"><span class="dot online"></span>Đang kết nối Firebase…</div>
+  </div>
+</div>
+
 <div class="app">
   <aside class="sidebar">
     <div class="logo">RP</div>
@@ -283,6 +379,16 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 20V10M9 20V4M15 20v-7M21 20v-12"/></svg>
       Báo cáo
       <small>Theo tuần</small>
+    </div>
+    <div class="nav-item" data-mode="pnl">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
+      Lợi nhuận
+      <small>P&amp;L theo tháng</small>
+    </div>
+    <div class="nav-item" data-mode="staff">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Hiệu suất KTV
+      <small>Số ca / lương</small>
     </div>
   </aside>
 
@@ -303,6 +409,8 @@
           <div class="avatar">AS</div>
           <div class="user-info"><strong>ADMIN SYSTEM</strong><span>3AM D'SPA &amp; SCA</span></div>
         </div>
+        <div class="sync-indicator" id="syncIndicator" title="Trạng thái đồng bộ Firebase"><span class="dot"></span><span id="syncText">Đã đồng bộ</span></div>
+        <button class="logout-btn" id="logoutBtn" title="Đăng xuất khỏi dashboard">Đăng xuất</button>
       </div>
     </header>
 
@@ -353,6 +461,7 @@
         </div>
       </div>
 
+      <div id="defaultView">
       <section class="stats" id="stats"></section>
 
       <section class="row r-2">
@@ -422,6 +531,57 @@
         </div>
         <div id="tableArea"></div>
       </section>
+      </div><!-- /#defaultView -->
+
+      <!-- ============== P&L VIEW (Lợi nhuận) ============== -->
+      <div id="pnlView" class="pnl-view">
+        <div class="pnl-controls">
+          <span class="branch-bar-label">Cơ sở:</span>
+          <div class="pnl-branches-tabs" id="pnlBranchTabs"></div>
+        </div>
+        <section class="pnl-summary-grid" id="pnlSummary"></section>
+        <section class="card" style="margin-bottom:18px;">
+          <div class="card-head"><h3>Doanh thu · Chi phí · Lợi nhuận theo tháng</h3></div>
+          <div class="card-body" style="padding:16px;"><canvas id="pnlChart" height="100"></canvas></div>
+        </section>
+        <section class="card">
+          <div class="card-head"><h3>Chi tiết P&amp;L</h3><p style="font-size:12px;color:var(--text-muted);">Tất cả số liệu theo tháng (T1/2025 → T2/2026)</p></div>
+          <div class="card-body" style="padding:6px 16px 16px;overflow-x:auto;">
+            <table class="pnl-table" id="pnlTable"></table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============== KTV VIEW (Hiệu suất nhân viên) ============== -->
+      <div id="ktvView" class="ktv-view">
+        <div class="pnl-controls">
+          <span class="branch-bar-label">Cơ sở:</span>
+          <div class="pnl-branches-tabs" id="ktvBranchTabs"></div>
+          <span style="color:var(--text-muted);font-size:12px;margin-left:auto;" id="ktvDateInfo"></span>
+        </div>
+        <section class="pnl-summary-grid" id="ktvSummary"></section>
+        <section class="ktv-leader-grid">
+          <div class="card">
+            <div class="card-head"><h3>📊 Số ca theo KTV</h3></div>
+            <div class="card-body" style="padding:16px;"><canvas id="ktvSessionsChart" height="180"></canvas></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>💰 Lương KTV (đ)</h3></div>
+            <div class="card-body" style="padding:16px;"><canvas id="ktvSalaryChart" height="180"></canvas></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="card-head"><h3>Bảng xếp hạng KTV</h3><p style="font-size:12px;color:var(--text-muted);">Bấm vào hàng để xem chi tiết từng KTV</p></div>
+          <div class="card-body" style="padding:6px 16px 16px;overflow-x:auto;">
+            <table class="ktv-table" id="ktvTable"></table>
+          </div>
+        </section>
+      </div>
+
+      <!-- KTV Detail Modal -->
+      <div class="ktv-detail-modal" id="ktvDetailModal">
+        <div class="ktv-detail-box" id="ktvDetailContent"></div>
+      </div>
     </main>
   </div>
 </div>
@@ -2659,11 +2819,578 @@ $$('#revenueModeToggle .metric-toggle').forEach(el => {
   };
 });
 
+const PNL_DATA = {"periods":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02"],"tx_soan":{"DOANH THU":{"type":"data","values":[662275500.0,416246000.0,591913500.0,537790000.0,496357000.0,615137500.0,566719588.0,649762692.0,510358761.0,561856021.0,529356200.0,417783500.0,421318100.0,358247300.0]},"TỔNG CHI PHÍ":{"type":"data","values":[290060065.0,390362816.0,388676065.0,434778896.0,268269180.0,518907584.0,255026692.0,358621098.0,566811240.0,400594854.0,300868268.0,277253718.9163,379138231.8333333,226380606.083]},"▾  A.  Chi phí cố định":{"type":"header","values":[]},"Tiền thuê nhà":{"type":"data","values":[34000000.0,34000000.0,34000000.0,34000000.0,34000000.0,34000000.0,34000000.0,37400000.0,34000000.0,34000000.0,34000000.0,34000000.0,34000000.0,34000000.0]},"Tiền gửi xe":{"type":"data","values":[1000000.0,1000000.0,1000000.0,1000000.0,1000000.0,1000000.0,1296000.0,1296000.0,1296000.0,1296000.0,1296000.0,1200000.0,1200000.0,1200000.0]},"Chênh lệch VAT đầu ra - đầu vào":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,4005220.0,4005220.0,3900224.0]},"▾  B.  Chi phí vận hành":{"type":"header","values":[]},"Nguyên vật liệu/sản phẩm":{"type":"data","values":[101062950.0,242819000.0,203132000.0,255006500.0,77053000.0,300578000.0,47601998.0,123975624.0,341538600.0,167761837.0,73922984.0,41574896.0,82847000.0,52215000.0]},"Cơ sở vật chất":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,9360000.0,37813000.0,4280000.0]},"Văn phòng phẩm":{"type":"header","values":[]},"Internet":{"type":"header","values":[]},"Hotline":{"type":"header","values":[]},"Chi phí MKT + quảng cáo":{"type":"data","values":[8231000.0,3150000.0,9790000.0,3360000.0,4626000.0,13690500.0,12289100.0,7240000.0,21460000.0,20871000.0,12341000.0,4618201.25,1365399.5833333335,2590664.333]},"Phần mềm":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,0,1016000.0]},"Điện":{"type":"data","values":[4154120.0,4733450.0,4357480.0,7111040.0,9001550.0,0,0,12259360.0,9528516.0,6604200.0,4920750.0,636525.0,6057990.0,4672800.0]},"Nước":{"type":"data","values":[380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0,380000.0]},"Thắp hương":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,684000.0,485000.0,1556000.0]},"Tiền ship":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,3688000.0,1553000.0,150000.0]},"In ấn":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,253333.3333,0,0]},"Chi hộ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,70000.0,0,0]},"Chi phí khác":{"type":"header","values":[]},"▾  C.  Chi phí nhân sự":{"type":"header","values":[]},"Lương ban vận hành phân bổ 4 cs":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,10318750.0,10867045.5,7029642.75]},"Lương quản lý":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,18151846.0,0,14112546.0]},"Lương lễ tân":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,11319649.0,11575844.0,7927468.0]},"Lương CV":{"type":"data","values":[130781995.0,93830366.0,126516585.0,124721356.0,133008630.0,159909084.0,149959594.0,166720114.0,149558124.0,160481817.0,164657534.0,29173559.0,24442677.0,17504153.0]},"Lương KTV":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,46097646.0,68366422.0,49745047.0]},"Lương thực tập":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,15889000.0,5000000.0,0]},"Lương bác sĩ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1000000.0,2000000.0,0]},"Lương tạp vụ":{"type":"data","values":[3450000.0,3450000.0,4500000.0,4200000.0,4200000.0,4350000.0,4500000.0,4350000.0,4050000.0,4200000.0,4350000.0,4350000.0,4650000.0,2850000.0]},"Lương bảo vệ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,300000.0,1500000.0]},"Lương thủ kho":{"type":"header","values":[]},"Lương kiểm soát, kế toán phân bổ 4 cơ sở":{"type":"data","values":[5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,7750000.0,9000000.0,7553571.5]},"Lương rep page phân bổ 2 cơ sở":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1333333.333,2000000.0,2000000.0]},"Lương MKT phân bổ 3 cơ sở +SCA":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,12792000.0,7790721.25,2944577.0]},"Bảo hiểm xã hội (DN đóng)":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,12010760.0,7009912.5,7009912.5]},"Công tác phí":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,3258000.0,1250000.0,243000.0]},"Đào tạo":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1539000.0,0,0]},"Phúc lợi khác":{"type":"data","values":[2000000.0,2000000.0,0,0,0,0,0,0,0,0,0,1800000.0,0,0]},"Thưởng tết":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,30825000.0,0]},"Quà tết, tổ chức sự kiện":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,24354000.0,0]},"LỢI NHUẬN":{"type":"data","values":[372215435.0,25883184.0,203237435.0,103011104.0,228087820.0,96229916.0,311692896.0,291141594.0,-56452479.0,161261167.0,228487932.0,140529781.0837,42179868.167,131866693.917]}},"quan_hoa":{"DOANH THU":{"type":"data","values":[360207800.0,236092500.0,377327500.0,383356850.0,345206500.0,425256500.0,389377500.0,387341000.0,339473800.0,359300200.0,331244500.0,316011800.0,305894700.0,226262800.0]},"TỔNG CHI PHÍ":{"type":"data","values":[222472866.67,214077439.0,347959545.0,311028852.0,204730680.0,278806851.0,258244471.0,267550268.0,210260190.0,268664912.0,231094378.0,263870381.9163,272568602.833,168456951.083]},"▾  A.  Chi phí cố định":{"type":"header","values":[]},"Tiền thuê nhà":{"type":"data","values":[21166666.67,22000000.0,22000000.0,23000000.0,23000000.0,23000000.0,23000000.0,23000000.0,23000000.0,23000000.0,23000000.0,23000000.0,23000000.0,23000000.0]},"Tiền gửi xe":{"type":"data","values":[1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0,1500000.0]},"Chênh lệch VAT đầu ra - đầu vào":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,2555556.0,2555556.0,2555556.0]},"▾  B.  Chi phí vận hành":{"type":"header","values":[]},"Nguyên vật liệu/sản phẩm":{"type":"data","values":[64134000.0,91163000.0,181295000.0,140769500.0,44575000.0,105056000.0,99214986.0,115877738.0,137911181.0,103323931.0,84409000.0,74397754.0,42378000.0,33385000.0]},"Cơ sở vật chất":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,11070000.0,2266000.0,1030000.0]},"Văn phòng phẩm":{"type":"header","values":[]},"Internet":{"type":"header","values":[]},"Hotline":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,500000.0,0,0]},"Chi phí MKT + quảng cáo":{"type":"data","values":[8231000.0,3150000.0,9790000.0,3360000.0,4626000.0,13690500.0,12289100.0,7240000.0,21460000.0,20871000.0,12341000.0,4618201.25,1365399.583,2590664.333]},"Phần mềm":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,0,1016000.0]},"Điện":{"type":"data","values":[3084000.0,3084000.0,3084000.0,8656000.0,9692000.0,8120000.0,9675000.0,8604000.0,7578000.0,7128000.0,3465000.0,3870000.0,5067500.0,2668500.0]},"Nước":{"type":"data","values":[200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0,200000.0]},"Thắp hương":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,400000.0,400000.0,1394000.0]},"Tiền ship":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1915000.0,533000.0,106000.0]},"In ấn":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,253333.3333,0,0]},"Chi hộ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,627000.0,0,0]},"Chi phí khác":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,0,20000.0]},"▾  C.  Chi phí nhân sự":{"type":"header","values":[]},"Lương ban vận hành phân bổ 4 cs":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,10318750.0,10867045.5,7029642.75]},"Lương quản lý":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,15609963.0,0,8545322.0]},"Lương lễ tân":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,11297506.0,11689773.0,8634481.0]},"Lương CV":{"type":"data","values":[113407200.0,82530439.0,120590545.0,124193352.0,111937680.0,117890351.0,102865385.0,101778530.0,9411009.0,103441981.0,96979378.0,24433492.0,28562919.0,21895621.0]},"Lương KTV":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,34692001.0,44212126.0,29143453.0]},"Lương thực tập":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,5000000.0,5000000.0,0]},"Lương bác sĩ":{"type":"header","values":[]},"Lương tạp vụ":{"type":"data","values":[3750000.0,3450000.0,4500000.0,4350000.0,4200000.0,4350000.0,4500000.0,4350000.0,4200000.0,4200000.0,4200000.0,4350000.0,4800000.0,2850000.0]},"Lương bảo vệ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,200000.0,0]},"Lương thủ kho":{"type":"header","values":[]},"Lương kiểm soát, kế toán phân bổ 4 cơ sở":{"type":"data","values":[5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,5000000.0,7750000.0,9000000.0,7553571.5]},"Lương rep page phân bổ 2 cơ sở":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1333333.333,2000000.0,2000000.0]},"Lương MKT phân bổ 3 cơ sở +SCA":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,12792000.0,7790721.25,2944577.0]},"Bảo hiểm xã hội (DN đóng)":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,6589492.0,8151562.5,8151562.5]},"Công tác phí":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,3258000.0,1250000.0,243000.0]},"Đào tạo":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1539000.0,0,0]},"Phúc lợi khác":{"type":"data","values":[2000000.0,2000000.0,0,0,0,0,0,0,0,0,0,0,620000.0,0]},"Thưởng tết":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,37775000.0,0]},"Quà tết, tổ chức sự kiện":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,22004000.0,0]},"LỢI NHUẬN":{"type":"data","values":[137734933.33,22015061.0,29367955.0,72327998.0,140475820.0,146449649.0,131133029.0,119790732.0,129213610.0,90635288.0,100150122.0,52141418.0837,32706097.166666627,57805848.917]}},"ha_dong":{"DOANH THU":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,76320500.0,89550500.0,95467000.0]},"TỔNG CHI PHÍ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,175247342.9163,179791590.833,116761535.083]},"▾  A.  Chi phí cố định":{"type":"header","values":[]},"Tiền thuê nhà":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,25000000.0,25000000.0,25000000.0]},"Tiền gửi xe":{"type":"header","values":[]},"Chênh lệch VAT đầu ra - đầu vào":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,2777778.0,2777778.0,2777778.0]},"▾  B.  Chi phí vận hành":{"type":"header","values":[]},"Nguyên vật liệu/sản phẩm":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,58055517.0,36572000.0,31284000.0]},"Cơ sở vật chất":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1287000.0,1520000.0,131000.0]},"Văn phòng phẩm":{"type":"header","values":[]},"Internet":{"type":"header","values":[]},"Hotline":{"type":"header","values":[]},"Chi phí MKT + quảng cáo":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,8118201.25,1365399.583,2590664.333]},"Phần mềm":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,0,1016000.0]},"Điện":{"type":"header","values":[]},"Nước":{"type":"header","values":[]},"Thắp hương":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,200000.0,400000.0,1033000.0]},"Tiền ship":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,300000.0,382000.0,0]},"In ấn":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,253333.3333,0,0]},"Chi hộ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,95000.0,0,0]},"Chi phí khác":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,0,20000.0]},"▾  C.  Chi phí nhân sự":{"type":"header","values":[]},"Lương ban vận hành phân bổ 4 cs":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,10318750.0,10867045.5,7029642.75]},"Lương quản lý":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,11797224.0,13155465.0,10359993.0]},"Lương lễ tân":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,7954168.0,0]},"Lương CV":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,9638052.0,10245724.0,6320846.0]},"Lương KTV":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,11737714.0,9862327.0,7172500.0]},"Lương thực tập":{"type":"header","values":[]},"Lương bác sĩ":{"type":"header","values":[]},"Lương tạp vụ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,800000.0,4950000.0,2700000.0]},"Lương bảo vệ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,6000000.0,0,5000000.0]},"Lương thủ kho":{"type":"header","values":[]},"Lương kiểm soát, kế toán phân bổ 4 cơ sở":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,7750000.0,9000000.0,7553571.5]},"Lương rep page phân bổ 2 cơ sở":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1333333.333,0,0]},"Lương MKT phân bổ 3 cơ sở +SCA":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,12792000.0,7790721.25,2944577.0]},"Bảo hiểm xã hội (DN đóng)":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,2196440.0,3584962.5,3584962.5]},"Công tác phí":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,3258000.0,1250000.0,243000.0]},"Đào tạo":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1539000.0,0,0]},"Phúc lợi khác":{"type":"header","values":[]},"Thưởng tết":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,20525000.0,0]},"Quà tết, tổ chức sự kiện":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,12589000.0,0]},"LỢI NHUẬN":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,-98926842.9163,-90241090.833,-21294535.083]}},"sca":{"DOANH THU":{"type":"data","values":[55089000.0,587858600.0,384805000.0,445754000.0,140404000.0,295140000.0,269725000.0,154530000.0,293680000.0,121934000.0,179143000.0,104000000.0,2092000.0,10000000.0]},"TỔNG CHI PHÍ":{"type":"data","values":[202214000.0,213207000.0,395486500.0,271766000.0,219724000.0,209761000.0,281775000.0,217666000.0,210974000.0,228393000.0,364308000.0,125707065.0,167418962.5,79318917.75]},"▾  A.  Chi phí cố định":{"type":"header","values":[]},"Tiền thuê nhà":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,30000000.0,30000000.0,30000000.0]},"Tiền gửi xe":{"type":"header","values":[]},"Chênh lệch VAT đầu ra - đầu vào":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,3102204.0,3096624.0,3097956.0]},"▾  B.  Chi phí vận hành":{"type":"data","values":[147178000.0,128832000.0,293917500.0,159797000.0,101910000.0,137777000.0,201688000.0,133897000.0,137574000.0,151831000.0,281177000.0,0,0,0]},"Nguyên vật liệu/sản phẩm":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,822000.0,26974000.0,560000.0]},"Học liệu":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,877000.0,129000.0,0]},"In ấn":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,1124000.0,0]},"Sự kiện":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,462000.0,2269000.0,735000.0]},"Cơ sở vật chất/Văn phòng phẩm":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,200000.0,2205000.0,0]},"Hotline":{"type":"header","values":[]},"MKT phân bổ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,2543951.0,6912066.25,6787331.0]},"Phần mềm":{"type":"header","values":[]},"Ký túc xá":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,5500000.0,5500000.0]},"Điện":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1277550.0,1304424.0,1224450.0]},"Nước":{"type":"header","values":[]},"Thắp hương":{"type":"header","values":[]},"Tiền ship":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,141000.0,98000.0,40000.0]},"Liên hoan":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,800000.0,0,0]},"Chi hộ":{"type":"header","values":[]},"Chi phí khác":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1000000.0,20000.0,0]},"▾  C.  Nhân sự":{"type":"data","values":[55036000.0,84375000.0,101569000.0,111969000.0,117814000.0,71984000.0,80087000.0,83769000.0,73400000.0,76562000.0,83131000.0,0,0,0]},"Lương ban vận hành phân bổ 3 cơ sở +SCA":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,10318750.0,10867045.5,7029642.75]},"Lương mẫu mụn":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,2200000.0,0,0]},"Lương giáo viên":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,21750000.0,3000000.0,0]},"Lương trợ giảng":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,1000000.0,0,0]},"Lương HCNS":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,22974000.0,17850769.0,10103077.0]},"Lương tạp vụ":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,2700000.0,2200000.0,1300000.0]},"Lương kiểm soát, kế toán phân bổ 4 cơ sở":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,7750000.0,9000000.0,7553571.5]},"Lương MKT phân bổ 3 cơ sở +SCA":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,12792000.0,7790721.25,2944577.0]},"Bảo hiểm xã hội (DN đóng)":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,2196440.0,2443312.5,2443312.5]},"Đào tạo":{"type":"header","values":[]},"Phúc lợi khác":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,800170.0,0,0]},"Thưởng tết":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,12745000.0,0]},"Quà tết, tổ chức sự kiện":{"type":"data","values":[0,0,0,0,0,0,0,0,0,0,0,0,21890000.0,0]},"LỢI NHUẬN":{"type":"data","values":[-147125000.0,366545600.0,-10681500.0,173988000.0,-79320000.0,85379000.0,-12050000.0,-63136000.0,82706000.0,-106459000.0,-185165000.0,-21707065.0,-165326962.5,-69318917.75]},"SỐ HỌC VIÊN ĐĂNG KÝ / ĐÓNG TIỀN THEO THÁNG":{"type":"header","values":[]},"Số học viên (người)":{"type":"data","values":[1.0,20.0,27.0,19.0,11.0,14.0,13.0,12.0,12.0,4.0,6.0,8.0,1.0,2.0]},"Số khoá học":{"type":"header","values":[]},"⚠  T1–T11/2025 SCA: NVL gộp Vật dụng + Mỹ phẩm máy móc. CP khác bao gồm mặt bằng, KTX, công cụ. Lương nhân sự chưa tách chi tiết.":{"type":"header","values":[]}}};
+const KTV_DATA = {"employees":{"Bùi Diệu My":{"name":"Bùi Diệu My","sessions":221,"salary":5200000,"unique_customers":162,"top_services":[{"name":"Lấy nhân mụn","count":71},{"name":"Extra Kết hợp Plasma","count":40},{"name":"Aqua Peel","count":18},{"name":"Đào thải độc tố - Không thâm","count":18},{"name":"Cấp Nước","count":12}],"weekly":{"2026-05-04":{"sessions":6,"salary":160000,"customers":5},"2026-04-27":{"sessions":53,"salary":1160000,"customers":39},"2026-04-20":{"sessions":59,"salary":1400000,"customers":45},"2026-04-13":{"sessions":23,"salary":550000,"customers":21},"2026-04-06":{"sessions":45,"salary":1130000,"customers":38},"2026-03-30":{"sessions":35,"salary":800000,"customers":29}}},"Nguyễn Thị Thu Hương":{"name":"Nguyễn Thị Thu Hương","sessions":239,"salary":4952000,"unique_customers":163,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":56},{"name":"Triệt Vùng Nách","count":49},{"name":"Lấy nhân mụn","count":35},{"name":"Extra Kết hợp Plasma","count":12},{"name":"Triệt Cả Chân (Nữ)","count":12}],"weekly":{"2026-05-04":{"sessions":6,"salary":132000,"customers":5},"2026-04-27":{"sessions":27,"salary":551000,"customers":21},"2026-04-20":{"sessions":49,"salary":993000,"customers":33},"2026-04-13":{"sessions":84,"salary":1819000,"customers":60},"2026-04-06":{"sessions":40,"salary":753000,"customers":30},"2026-03-30":{"sessions":33,"salary":704000,"customers":27}}},"Hà Lan Anh":{"name":"Hà Lan Anh","sessions":243,"salary":4836000,"unique_customers":156,"top_services":[{"name":"Triệt Vùng Nách","count":58},{"name":"Triệt Vùng Bi (Nữ)","count":47},{"name":"Lấy nhân mụn","count":29},{"name":"Extra Kết hợp Plasma","count":18},{"name":"Aqua Peel","count":11}],"weekly":{"2026-05-04":{"sessions":5,"salary":80000,"customers":4},"2026-04-27":{"sessions":41,"salary":798000,"customers":28},"2026-04-20":{"sessions":56,"salary":1129000,"customers":39},"2026-04-13":{"sessions":63,"salary":1294000,"customers":51},"2026-04-06":{"sessions":47,"salary":892000,"customers":27},"2026-03-30":{"sessions":31,"salary":643000,"customers":23}}},"Chu Thị Mai Hoa":{"name":"Chu Thị Mai Hoa","sessions":5,"salary":100000,"unique_customers":4,"top_services":[{"name":"Lấy nhân mụn","count":4},{"name":"Aqua Peel","count":1}],"weekly":{"2026-05-04":{"sessions":1,"salary":20000,"customers":1},"2026-04-27":{"sessions":1,"salary":20000,"customers":1},"2026-04-20":{"sessions":1,"salary":20000,"customers":1},"2026-04-06":{"sessions":1,"salary":20000,"customers":1},"2026-03-30":{"sessions":1,"salary":20000,"customers":1}}},"Nguyễn Thị Linh Chi":{"name":"Nguyễn Thị Linh Chi","sessions":170,"salary":3597000,"unique_customers":115,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":38},{"name":"Triệt Vùng Nách","count":30},{"name":"Lấy nhân mụn","count":20},{"name":"Aqua Peel","count":9},{"name":"Triệt Cả Chân (Nữ)","count":9}],"weekly":{"2026-05-04":{"sessions":4,"salary":100000,"customers":4},"2026-04-27":{"sessions":27,"salary":640000,"customers":17},"2026-04-20":{"sessions":55,"salary":1149000,"customers":44},"2026-04-13":{"sessions":18,"salary":333000,"customers":12},"2026-04-06":{"sessions":42,"salary":870000,"customers":33},"2026-03-30":{"sessions":24,"salary":505000,"customers":19}}},"Trần Thị Hồng Anh":{"name":"Trần Thị Hồng Anh","sessions":318,"salary":6698000,"unique_customers":205,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":65},{"name":"Triệt Vùng Nách","count":63},{"name":"Lấy nhân mụn","count":40},{"name":"Đào thải độc tố - Không thâm","count":14},{"name":"Extra Kết hợp Plasma","count":13}],"weekly":{"2026-05-04":{"sessions":4,"salary":84000,"customers":3},"2026-04-27":{"sessions":66,"salary":1327000,"customers":50},"2026-04-20":{"sessions":93,"salary":1937000,"customers":62},"2026-04-13":{"sessions":61,"salary":1344000,"customers":51},"2026-04-06":{"sessions":52,"salary":1093000,"customers":39},"2026-03-30":{"sessions":42,"salary":913000,"customers":29}}},"Nguyễn Hồng Hạnh":{"name":"Nguyễn Hồng Hạnh","sessions":36,"salary":817000,"unique_customers":20,"top_services":[{"name":"Triệt Vùng Nách","count":7},{"name":"Lấy nhân mụn","count":7},{"name":"Triệt Cả Chân (Nữ)","count":3},{"name":"Triệt Vùng Bi (Nữ)","count":3},{"name":"Triệt Cả Tay (nữ)","count":3}],"weekly":{"2026-04-13":{"sessions":8,"salary":157000,"customers":5},"2026-04-06":{"sessions":28,"salary":660000,"customers":15}}},"Phan Thị Kim Tuyết":{"name":"Phan Thị Kim Tuyết","sessions":51,"salary":996000,"unique_customers":40,"top_services":[{"name":"Triệt Vùng Nách","count":12},{"name":"Triệt Vùng Bi (Nữ)","count":11},{"name":"Lấy nhân mụn","count":5},{"name":"ALA PDT - Dr.CPU","count":5},{"name":"Cấp Nước","count":3}],"weekly":{"2026-04-06":{"sessions":26,"salary":498000,"customers":23},"2026-03-30":{"sessions":25,"salary":498000,"customers":17}}},"Nguyễn Thị Thu Hiền":{"name":"Nguyễn Thị Thu Hiền","sessions":41,"salary":901000,"unique_customers":28,"top_services":[{"name":"Lấy nhân mụn","count":10},{"name":"Triệt Vùng Bi (Nữ)","count":9},{"name":"Aqua Peel","count":4},{"name":"Triệt Vùng Nách","count":4},{"name":"Extra Kết hợp Plasma","count":3}],"weekly":{"2026-03-30":{"sessions":41,"salary":901000,"customers":28}}}},"branches":["quan-hoa"]};
+
+/* ==========================================================
+   FIREBASE + AUTH + LOGIN
+========================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyA8mMJmVZSVD-6HpWxASgI8IsglzV3IGVM",
+  authDomain: "weekly-a7488.firebaseapp.com",
+  projectId: "weekly-a7488",
+  storageBucket: "weekly-a7488.firebasestorage.app",
+  messagingSenderId: "977795098671",
+  appId: "1:977795098671:web:a01567009109716f3d3eda"
+};
+// SHA-256 hash of password (computed at build time)
+const PASSWORD_HASH = "cd3588d64bd3b1af656aa802cfea9623d64835327dd320fb3c0476fd964da031";
+const AUTH_TOKEN_KEY = "dashboard_auth_token_v1";
+const AUTH_TOKEN_TTL_DAYS = 30;
+
+let _firebaseApp = null, _firebaseAuth = null, _firestoreDb = null, _firebaseReady = false, _firebaseAuthError = null;
+let _isOnline = navigator.onLine;
+window.addEventListener('online', () => { _isOnline = true; updateSyncIndicator('online'); });
+window.addEventListener('offline', () => { _isOnline = false; updateSyncIndicator('offline'); });
+
+function updateSyncIndicator(state, text) {
+  const ind = document.getElementById('syncIndicator');
+  const txt = document.getElementById('syncText');
+  if (!ind || !txt) return;
+  ind.classList.remove('offline', 'syncing');
+  if (state === 'offline') ind.classList.add('offline');
+  if (state === 'syncing') ind.classList.add('syncing');
+  txt.textContent = text || (state === 'offline' ? 'Mất kết nối' : state === 'syncing' ? 'Đang đồng bộ…' : 'Đã đồng bộ');
+}
+
+async function sha256Hex(text) {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function checkSavedAuthToken() {
+  try {
+    const raw = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (!raw) return false;
+    const t = JSON.parse(raw);
+    if (!t.exp || Date.now() > t.exp) { localStorage.removeItem(AUTH_TOKEN_KEY); return false; }
+    return t.h === PASSWORD_HASH;
+  } catch (e) { return false; }
+}
+function saveAuthToken() {
+  localStorage.setItem(AUTH_TOKEN_KEY, JSON.stringify({
+    h: PASSWORD_HASH,
+    exp: Date.now() + AUTH_TOKEN_TTL_DAYS * 24 * 3600 * 1000
+  }));
+}
+function clearAuthToken() { localStorage.removeItem(AUTH_TOKEN_KEY); }
+
+async function initFirebase() {
+  try {
+    _firebaseApp = firebase.initializeApp(FIREBASE_CONFIG);
+    _firebaseAuth = firebase.auth();
+    _firestoreDb = firebase.firestore();
+    // Enable offline persistence (best-effort)
+    try { await _firestoreDb.enablePersistence({ synchronizeTabs: true }); } catch(e) { /* ignore - multi-tab or unsupported */ }
+    _firebaseReady = true;
+    return true;
+  } catch (e) {
+    _firebaseAuthError = e.message || String(e);
+    console.error('Firebase init failed:', e);
+    return false;
+  }
+}
+
+async function signInAnon() {
+  if (!_firebaseAuth) return false;
+  try {
+    if (_firebaseAuth.currentUser) return true;
+    await _firebaseAuth.signInAnonymously();
+    return true;
+  } catch (e) {
+    console.error('Anon sign-in failed:', e);
+    _firebaseAuthError = e.message || String(e);
+    return false;
+  }
+}
+
+const FIRESTORE_DOC = 'dashboard/main';
+async function loadFromFirestore() {
+  if (!_firestoreDb) return null;
+  try {
+    updateSyncIndicator('syncing', 'Đang tải…');
+    const docRef = _firestoreDb.doc(FIRESTORE_DOC);
+    const snap = await docRef.get();
+    if (snap.exists) {
+      updateSyncIndicator('online', 'Đã đồng bộ');
+      return snap.data().payload || null;
+    }
+    updateSyncIndicator('online', 'Chưa có dữ liệu');
+    return null;
+  } catch (e) {
+    console.error('Firestore load failed:', e);
+    updateSyncIndicator('offline', 'Offline');
+    return null;
+  }
+}
+let _saveTimer = null;
+async function saveToFirestore(data) {
+  if (!_firestoreDb) return false;
+  // Debounce
+  clearTimeout(_saveTimer);
+  return new Promise(resolve => {
+    _saveTimer = setTimeout(async () => {
+      try {
+        updateSyncIndicator('syncing', 'Đang lưu…');
+        await _firestoreDb.doc(FIRESTORE_DOC).set({
+          payload: data,
+          _updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        updateSyncIndicator('online', 'Đã đồng bộ');
+        resolve(true);
+      } catch (e) {
+        console.error('Firestore save failed:', e);
+        updateSyncIndicator('offline', 'Lưu thất bại');
+        resolve(false);
+      }
+    }, 700);
+  });
+}
+
+/* ==========================================================
+   LOGIN UI FLOW
+========================================================== */
+async function attemptLogin(pw) {
+  const errorEl = document.getElementById('loginError');
+  errorEl.textContent = '';
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'Đang xác thực…';
+  try {
+    const hash = await sha256Hex(pw);
+    if (hash !== PASSWORD_HASH) {
+      errorEl.textContent = 'Mật khẩu không đúng';
+      btn.disabled = false; btn.textContent = 'Đăng nhập';
+      return false;
+    }
+    if (!_firebaseReady) {
+      errorEl.textContent = 'Firebase chưa sẵn sàng. Thử lại sau giây lát.';
+      btn.disabled = false; btn.textContent = 'Đăng nhập';
+      return false;
+    }
+    const ok = await signInAnon();
+    if (!ok) {
+      errorEl.textContent = 'Không kết nối được Firebase: ' + (_firebaseAuthError || 'unknown');
+      btn.disabled = false; btn.textContent = 'Đăng nhập';
+      return false;
+    }
+    saveAuthToken();
+    document.getElementById('loginOverlay').classList.add('hidden');
+    btn.disabled = false; btn.textContent = 'Đăng nhập';
+    return true;
+  } catch (e) {
+    errorEl.textContent = 'Lỗi: ' + (e.message || e);
+    btn.disabled = false; btn.textContent = 'Đăng nhập';
+    return false;
+  }
+}
+
+async function bootstrapApp() {
+  // Phase 1: init Firebase (always)
+  const statusEl = document.getElementById('loginStatus');
+  if (statusEl) statusEl.innerHTML = '<span class="dot online"></span>Đang kết nối Firebase…';
+  const ok = await initFirebase();
+  if (statusEl) {
+    statusEl.innerHTML = ok
+      ? '<span class="dot online"></span>Firebase OK · Project: weekly-a7488'
+      : '<span class="dot offline"></span>Firebase lỗi: ' + (_firebaseAuthError || '?');
+  }
+
+  // Phase 2: check saved token → auto-login if valid
+  if (checkSavedAuthToken()) {
+    if (ok) await signInAnon();
+    document.getElementById('loginOverlay').classList.add('hidden');
+    await loadDataAndRender();
+    return;
+  }
+  // Otherwise, login UI is already visible — wait for user to submit
+}
+
+async function loadDataAndRender() {
+  // Try Firestore first; if empty/fails, fall back to localStorage; if empty too, seed.
+  let data = null;
+  if (_firebaseReady && _firebaseAuth && _firebaseAuth.currentUser) {
+    data = await loadFromFirestore();
+  }
+  if (!data) {
+    // Try localStorage backup
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) data = JSON.parse(raw);
+    } catch(e) {}
+  }
+  if (!data) {
+    // First-time: seed
+    data = seedRealData();
+    data._seedVersion = SEED_VERSION;
+  }
+  // Migrate old data: ensure pnl/ktv embedded
+  if (!data.pnl) data.pnl = PNL_DATA;
+  if (!data.ktv) data.ktv = KTV_DATA;
+
+  // Replace global DATA
+  Object.keys(DATA).forEach(k => delete DATA[k]);
+  Object.assign(DATA, data);
+  saveData(DATA);  // local backup
+  renderAll();
+}
+
+// Wire up login button
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const pw = document.getElementById('loginPwInput').value;
+  if (await attemptLogin(pw)) {
+    await loadDataAndRender();
+  }
+});
+document.getElementById('loginPwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  if (!confirm('Đăng xuất? Bạn sẽ phải nhập lại mật khẩu lần sau.')) return;
+  clearAuthToken();
+  if (_firebaseAuth) _firebaseAuth.signOut().catch(() => {});
+  location.reload();
+});
+
+// Override saveData to also push to Firestore
+const _localSaveData = saveData;
+saveData = function(data) {
+  _localSaveData(data);
+  if (_firebaseReady && _firebaseAuth && _firebaseAuth.currentUser) {
+    saveToFirestore(data);
+  }
+};
+
+/* ==========================================================
+   PNL VIEW (Lợi nhuận)
+========================================================== */
+const PNL_BRANCHES = [
+  { id: 'tx_soan', name: 'Trần Xuân Soạn', color: '#ef4444' },
+  { id: 'quan_hoa', name: 'Quan Hoa', color: '#f59e0b' },
+  { id: 'ha_dong', name: 'Hà Đông', color: '#10b981' },
+  { id: 'sca', name: 'SCA Academy', color: '#8b5cf6' }
+];
+let pnlActiveBranch = 'tx_soan';
+let pnlChartInstance = null;
+
+function pnlPeriodLabel(p) {
+  // "2025-01" → "T1/2025"
+  const [y, m] = p.split('-');
+  return 'T' + parseInt(m, 10) + '/' + y;
+}
+function fmtMoney(n) {
+  if (!n) return '0';
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (abs >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (abs >= 1e3) return (n/1e3).toFixed(0) + 'K';
+  return n.toFixed(0);
+}
+
+function renderPnlView() {
+  if (!DATA.pnl) DATA.pnl = PNL_DATA;
+  const data = DATA.pnl;
+
+  // Render branch tabs
+  const tabsEl = document.getElementById('pnlBranchTabs');
+  tabsEl.innerHTML = '';
+  PNL_BRANCHES.forEach(b => {
+    const btn = document.createElement('button');
+    btn.textContent = b.name;
+    if (b.id === pnlActiveBranch) btn.classList.add('on');
+    btn.onclick = () => { pnlActiveBranch = b.id; renderPnlView(); };
+    tabsEl.appendChild(btn);
+  });
+
+  const branch = data[pnlActiveBranch];
+  if (!branch) return;
+
+  // Find key rows
+  const revKey = Object.keys(branch).find(k => k.toUpperCase() === 'DOANH THU');
+  const costKey = Object.keys(branch).find(k => k.toUpperCase().includes('TỔNG CHI PHÍ'));
+  const profitKey = Object.keys(branch).find(k => k.toUpperCase().includes('LỢI NHUẬN'));
+  const revArr = revKey ? branch[revKey].values : data.periods.map(() => 0);
+  const costArr = costKey ? branch[costKey].values : data.periods.map(() => 0);
+  const profitArr = profitKey ? branch[profitKey].values : data.periods.map((_, i) => revArr[i] - costArr[i]);
+
+  const totalRev = revArr.reduce((a, b) => a + b, 0);
+  const totalCost = costArr.reduce((a, b) => a + b, 0);
+  const totalProfit = profitArr.reduce((a, b) => a + b, 0);
+  const margin = totalRev > 0 ? (totalProfit / totalRev) * 100 : 0;
+
+  // Summary cards
+  const sumEl = document.getElementById('pnlSummary');
+  sumEl.innerHTML = `
+    <div class="pnl-summary-card">
+      <div class="label">Doanh thu</div>
+      <div class="value">${fmtVND(totalRev)}</div>
+      <div class="sub">14 tháng (T1/2025 → T2/2026)</div>
+    </div>
+    <div class="pnl-summary-card">
+      <div class="label">Tổng chi phí</div>
+      <div class="value">${fmtVND(totalCost)}</div>
+      <div class="sub">${totalRev > 0 ? (totalCost/totalRev*100).toFixed(1) + '% doanh thu' : '—'}</div>
+    </div>
+    <div class="pnl-summary-card profit">
+      <div class="label">Lợi nhuận</div>
+      <div class="value ${totalProfit >= 0 ? 'positive' : 'negative'}">${fmtVND(totalProfit)}</div>
+      <div class="sub">Sau khi trừ tất cả chi phí</div>
+    </div>
+    <div class="pnl-summary-card profit">
+      <div class="label">Biên LN (Margin)</div>
+      <div class="value ${margin >= 0 ? 'positive' : 'negative'}">${margin.toFixed(1)}%</div>
+      <div class="sub">Lợi nhuận / Doanh thu</div>
+    </div>`;
+
+  // Chart
+  const ctx = document.getElementById('pnlChart');
+  if (pnlChartInstance) pnlChartInstance.destroy();
+  pnlChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.periods.map(pnlPeriodLabel),
+      datasets: [
+        { label: 'Doanh thu', data: revArr, backgroundColor: '#3b82f6', order: 2 },
+        { label: 'Chi phí',   data: costArr, backgroundColor: '#fb923c', order: 2 },
+        { label: 'Lợi nhuận', data: profitArr, type: 'line', borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.15)', borderWidth: 2.5, tension: 0.3, fill: true, pointRadius: 4, order: 1 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + fmtVND(c.parsed.y) } }
+      },
+      scales: { y: { ticks: { callback: v => fmtMoney(v) } } }
+    }
+  });
+
+  // Detailed table
+  const tbl = document.getElementById('pnlTable');
+  let html = '<thead><tr><th>Khoản mục</th>';
+  data.periods.forEach(p => html += `<th>${pnlPeriodLabel(p)}</th>`);
+  html += '<th>Tổng</th></tr></thead><tbody>';
+
+  Object.entries(branch).forEach(([label, info]) => {
+    if (info.type === 'header') {
+      html += `<tr class="section-header"><td colspan="${data.periods.length + 2}">${label}</td></tr>`;
+      return;
+    }
+    const isTotal = label.toUpperCase().includes('TỔNG CHI PHÍ') || label.toUpperCase() === 'DOANH THU';
+    const isProfit = label.toUpperCase().includes('LỢI NHUẬN');
+    const sum = info.values.reduce((a, b) => a + b, 0);
+    let cls = '';
+    if (isProfit) cls = 'profit-row' + (sum < 0 ? ' negative' : '');
+    else if (isTotal) cls = 'total-row';
+    html += `<tr class="${cls}"><td${cls === '' ? ' class="indent"' : ''}>${label}</td>`;
+    info.values.forEach(v => {
+      const cellClass = isProfit ? (v >= 0 ? 'text-positive' : 'text-negative') : '';
+      html += `<td class="${cellClass}">${v ? fmtNum(v) : ''}</td>`;
+    });
+    const sumCellClass = isProfit ? (sum >= 0 ? 'text-positive' : 'text-negative') : '';
+    html += `<td class="${sumCellClass}"><strong>${sum ? fmtNum(sum) : ''}</strong></td></tr>`;
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+}
+
+/* ==========================================================
+   KTV VIEW (Hiệu suất nhân viên)
+========================================================== */
+let ktvActiveBranch = 'quan-hoa';
+let ktvSessionsChart = null, ktvSalaryChart = null;
+
+function renderKtvView() {
+  if (!DATA.ktv) DATA.ktv = KTV_DATA;
+  const data = DATA.ktv;
+
+  // Branch tabs (cur. only quan-hoa, but extensible)
+  const tabsEl = document.getElementById('ktvBranchTabs');
+  tabsEl.innerHTML = '';
+  data.branches.forEach(bid => {
+    const branch = BRANCHES.find(b => b.id === bid);
+    const name = branch ? branch.name.replace("3AM D'SPA · ", '') : bid;
+    const btn = document.createElement('button');
+    btn.textContent = name;
+    if (bid === ktvActiveBranch) btn.classList.add('on');
+    btn.onclick = () => { ktvActiveBranch = bid; renderKtvView(); };
+    tabsEl.appendChild(btn);
+  });
+
+  // Sort employees by sessions desc
+  const employees = Object.values(data.employees).sort((a, b) => b.sessions - a.sessions);
+
+  // Date info from weekly keys
+  let allWeeks = new Set();
+  employees.forEach(e => Object.keys(e.weekly || {}).forEach(w => allWeeks.add(w)));
+  const weekList = [...allWeeks].sort();
+  document.getElementById('ktvDateInfo').textContent = weekList.length
+    ? `Dữ liệu: ${weekList[0]} → ${weekList[weekList.length - 1]} (${weekList.length} tuần)`
+    : '';
+
+  // Summary
+  const totalSessions = employees.reduce((s, e) => s + e.sessions, 0);
+  const totalSalary = employees.reduce((s, e) => s + e.salary, 0);
+  const totalCust = new Set();
+  employees.forEach(e => e.top_services.forEach(() => {})); // can't reconstruct cust set, use sum approximation
+  const avgSessions = employees.length ? Math.round(totalSessions / employees.length) : 0;
+  const avgSalary = employees.length ? Math.round(totalSalary / employees.length) : 0;
+
+  document.getElementById('ktvSummary').innerHTML = `
+    <div class="pnl-summary-card">
+      <div class="label">Tổng KTV</div>
+      <div class="value">${employees.length}</div>
+      <div class="sub">Đang hoạt động</div>
+    </div>
+    <div class="pnl-summary-card">
+      <div class="label">Tổng số ca</div>
+      <div class="value">${fmtNum(totalSessions)}</div>
+      <div class="sub">${avgSessions} ca/KTV trung bình</div>
+    </div>
+    <div class="pnl-summary-card">
+      <div class="label">Tổng lương KTV</div>
+      <div class="value">${fmtVND(totalSalary)}</div>
+      <div class="sub">${fmtVND(avgSalary)}/KTV trung bình</div>
+    </div>
+    <div class="pnl-summary-card">
+      <div class="label">KTV top 1</div>
+      <div class="value" style="font-size:18px;">${employees[0] ? employees[0].name : '—'}</div>
+      <div class="sub">${employees[0] ? employees[0].sessions + ' ca' : ''}</div>
+    </div>`;
+
+  // Sessions chart
+  const sCtx = document.getElementById('ktvSessionsChart');
+  if (ktvSessionsChart) ktvSessionsChart.destroy();
+  ktvSessionsChart = new Chart(sCtx, {
+    type: 'bar',
+    data: {
+      labels: employees.map(e => e.name.split(' ').slice(-2).join(' ')),
+      datasets: [{ label: 'Số ca', data: employees.map(e => e.sessions), backgroundColor: '#3b82f6', borderRadius: 6 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.parsed.x + ' ca' } } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  // Salary chart
+  const sCtx2 = document.getElementById('ktvSalaryChart');
+  if (ktvSalaryChart) ktvSalaryChart.destroy();
+  ktvSalaryChart = new Chart(sCtx2, {
+    type: 'bar',
+    data: {
+      labels: employees.map(e => e.name.split(' ').slice(-2).join(' ')),
+      datasets: [{ label: 'Lương', data: employees.map(e => e.salary), backgroundColor: '#22c55e', borderRadius: 6 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmtVND(c.parsed.x) } } },
+      scales: { x: { beginAtZero: true, ticks: { callback: v => fmtMoney(v) } } }
+    }
+  });
+
+  // Detailed table
+  const tbl = document.getElementById('ktvTable');
+  let html = `<thead><tr>
+    <th>KTV</th><th>Số ca</th><th>Lương</th><th>KH unique</th><th>Lương/ca TB</th><th>Top dịch vụ</th>
+  </tr></thead><tbody>`;
+  employees.forEach((e, i) => {
+    const rankCls = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : 'other';
+    const avgPerSession = e.sessions ? Math.round(e.salary / e.sessions) : 0;
+    const topSvc = e.top_services && e.top_services[0] ? e.top_services[0].name : '—';
+    html += `<tr class="clickable" data-emp="${e.name}">
+      <td class="name-col"><span class="ktv-rank-badge ${rankCls}">#${i+1}</span>${e.name}</td>
+      <td>${fmtNum(e.sessions)}</td>
+      <td>${fmtVND(e.salary)}</td>
+      <td>${fmtNum(e.unique_customers)}</td>
+      <td>${fmtVND(avgPerSession)}</td>
+      <td style="text-align:left;font-size:12px;color:var(--text-muted);">${topSvc}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  tbl.innerHTML = html;
+  tbl.querySelectorAll('tr.clickable').forEach(tr => {
+    tr.onclick = () => showKtvDetail(tr.dataset.emp);
+  });
+}
+
+function showKtvDetail(empName) {
+  const data = DATA.ktv;
+  const e = data.employees[empName];
+  if (!e) return;
+  const weeklyEntries = Object.entries(e.weekly || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  let weeklyHtml = '<table class="ktv-table" style="margin-top:10px;"><thead><tr><th>Tuần (bắt đầu)</th><th>Ca</th><th>Lương</th><th>KH</th></tr></thead><tbody>';
+  weeklyEntries.forEach(([wk, w]) => {
+    weeklyHtml += `<tr><td class="name-col">${wk}</td><td>${w.sessions}</td><td>${fmtVND(w.salary)}</td><td>${w.customers}</td></tr>`;
+  });
+  weeklyHtml += '</tbody></table>';
+
+  let svcHtml = '<ul class="ktv-services-list">';
+  (e.top_services || []).forEach(s => {
+    svcHtml += `<li><span>${s.name}</span><strong>${s.count} lần</strong></li>`;
+  });
+  svcHtml += '</ul>';
+
+  document.getElementById('ktvDetailContent').innerHTML = `
+    <button class="modal-close-x" id="ktvDetailClose">×</button>
+    <h3>${e.name}</h3>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:14px;">${e.sessions} ca · ${fmtVND(e.salary)} lương · ${e.unique_customers} KH unique</p>
+    <h4 style="margin-bottom:6px;font-size:13px;">📅 Theo tuần</h4>
+    ${weeklyHtml}
+    <h4 style="margin:18px 0 6px;font-size:13px;">🔥 Top 5 dịch vụ</h4>
+    ${svcHtml}`;
+  document.getElementById('ktvDetailModal').classList.add('show');
+  document.getElementById('ktvDetailClose').onclick = () => document.getElementById('ktvDetailModal').classList.remove('show');
+}
+document.getElementById('ktvDetailModal').onclick = (e) => {
+  if (e.target.id === 'ktvDetailModal') e.target.classList.remove('show');
+};
+
+/* ==========================================================
+   VIEW SWITCHING (extend existing)
+========================================================== */
+const _origRenderAll = renderAll;
+renderAll = function() {
+  const dv = document.getElementById('defaultView');
+  const pv = document.getElementById('pnlView');
+  const kv = document.getElementById('ktvView');
+  if (activeMode === 'pnl') {
+    dv.style.display = 'none'; pv.classList.add('active'); kv.classList.remove('active');
+    // Hide controls/topbar bits not relevant
+    const dr = document.getElementById('dateRange'); if (dr) dr.style.display = 'none';
+    const ab = document.getElementById('addBtn'); if (ab) ab.style.display = 'none';
+    const bb = document.querySelectorAll('.branch-bar'); bb.forEach(b => b.style.display = 'none');
+    document.getElementById('pageTitle').textContent = 'Lợi nhuận (P&L)';
+    document.getElementById('pageSubtitle').textContent = 'Doanh thu, chi phí và lợi nhuận theo cơ sở (T1/2025 → T2/2026)';
+    renderPnlView();
+  } else if (activeMode === 'staff') {
+    dv.style.display = 'none'; pv.classList.remove('active'); kv.classList.add('active');
+    const dr = document.getElementById('dateRange'); if (dr) dr.style.display = 'none';
+    const ab = document.getElementById('addBtn'); if (ab) ab.style.display = 'none';
+    const bb = document.querySelectorAll('.branch-bar'); bb.forEach(b => b.style.display = 'none');
+    document.getElementById('pageTitle').textContent = 'Hiệu suất KTV';
+    document.getElementById('pageSubtitle').textContent = 'Số ca, lương và dịch vụ phổ biến của từng kỹ thuật viên';
+    renderKtvView();
+  } else {
+    dv.style.display = ''; pv.classList.remove('active'); kv.classList.remove('active');
+    const dr = document.getElementById('dateRange'); if (dr) dr.style.display = '';
+    const ab = document.getElementById('addBtn'); if (ab) ab.style.display = '';
+    const bb = document.querySelectorAll('.branch-bar'); bb.forEach(b => b.style.display = '');
+    _origRenderAll();
+  }
+};
+
+// Bootstrap: kick off Firebase when DOM ready
+window.addEventListener('DOMContentLoaded', bootstrapApp);
+
+
 /* ==========================================================
    INIT
 ========================================================== */
+// NOTE: renderAll() is now triggered by bootstrapApp() after Firebase auth completes
 updateRangeUI();
-renderAll();
+// Initial render skipped here — login flow will handle it
 </script>
 </body>
 </html>

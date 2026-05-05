@@ -1,0 +1,27 @@
+rules_version = '2';
+// =============================================================================
+// FIRESTORE SECURITY RULES — siết quy tắc cho Dashboard 3AM & SCA
+// =============================================================================
+// Logic: chỉ user đã đăng nhập (anonymous auth, sau khi nhập đúng password)
+// mới đọc/ghi được dữ liệu.
+//
+// Cách áp dụng:
+// 1. Vào Firebase Console → Firestore Database → tab "Rules"
+// 2. Copy toàn bộ nội dung file này, paste vào ô rules
+// 3. Click "Publish"
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Mọi document trong collection /dashboard/ đòi hỏi user đã authenticate
+    match /dashboard/{docId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // (Tuỳ chọn mở rộng sau này) Mọi collection khác cũng cần auth
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
