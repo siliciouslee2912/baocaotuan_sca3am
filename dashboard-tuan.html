@@ -453,8 +453,8 @@
           <div class="metric-toggle on" data-mode="net" title="Doanh thu sau khi trừ khuyến mãi">DT thuần</div>
           <div class="metric-toggle" data-mode="gross" title="Doanh thu chưa trừ khuyến mãi">DT gộp</div>
           <div class="metric-toggle" data-mode="promo" title="Tổng giảm trừ khuyến mãi">Giảm trừ KM</div>
-          <div class="metric-toggle" data-mode="profit" title="Lợi nhuận = Doanh thu − Chi phí (từ P&amp;L)">Lợi nhuận</div>
-          <div class="metric-toggle" data-mode="cost" title="Tổng chi phí từ báo cáo P&amp;L">Chi phí</div>
+          <div class="metric-toggle weekly-hidden" data-mode="profit" title="Lợi nhuận = Doanh thu − Chi phí (từ P&amp;L)">Lợi nhuận</div>
+          <div class="metric-toggle weekly-hidden" data-mode="cost" title="Tổng chi phí từ báo cáo P&amp;L">Chi phí</div>
           <div class="metric-toggle" data-mode="customers" title="Số khách hàng (mới + cũ)">Khách hàng</div>
         </div>
       </div>
@@ -3440,6 +3440,19 @@ renderAll = function() {
     const dr = document.getElementById('dateRange'); if (dr) dr.style.display = '';
     const ab = document.getElementById('addBtn'); if (ab) ab.style.display = '';
     const bb = document.querySelectorAll('.branch-bar'); bb.forEach(b => b.style.display = '');
+
+    // In weekly mode, hide Profit/Cost toggles (P&L is monthly only — no meaningful weekly value)
+    const isWeekly = (activeMode === 'weekly');
+    document.querySelectorAll('#revenueModeToggle .weekly-hidden').forEach(el => {
+      el.style.display = isWeekly ? 'none' : '';
+    });
+    // Auto-fallback if user is currently on a hidden metric
+    if (isWeekly && (revenueMode === 'profit' || revenueMode === 'cost')) {
+      revenueMode = 'net';
+      document.querySelectorAll('#revenueModeToggle .metric-toggle').forEach(x =>
+        x.classList.toggle('on', x.dataset.mode === revenueMode));
+    }
+
     _origRenderAll();
   }
 };
