@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.01" />
+<meta name="version" content="v2026.05.05.02" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 layout-cleanup commit 1de0a6c -->
+<!-- BUILD: 2026-05-05 hash-state-persistence -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3229,8 +3229,63 @@ async function loadDataAndRender() {
   Object.keys(DATA).forEach(k => delete DATA[k]);
   Object.assign(DATA, data);
   saveData(DATA);  // local backup
+
+  // Restore UI state from URL hash (if any) so F5 returns to same view
+  loadStateFromHash();
+
   renderAll();
 }
+
+/* ==========================================================
+   URL HASH STATE PERSISTENCE — F5/refresh keeps current view
+========================================================== */
+const VALID_MODES = ['monthly', 'weekly', 'staff'];
+const VALID_VIEWS = ['overview', 'customers', 'service', 'product', 'courses', 'leads', 'students', 'conversion'];
+const VALID_METRICS = ['net', 'gross', 'promo', 'profit', 'cost', 'customers'];
+
+function getStateHash() {
+  const params = new URLSearchParams();
+  params.set('mode', activeMode);
+  params.set('view', activeView);
+  params.set('branch', activeBranch);
+  params.set('metric', revenueMode);
+  if (dateRange.start) params.set('from', dateRange.start);
+  if (dateRange.end)   params.set('to',   dateRange.end);
+  return params.toString();
+}
+
+function syncStateToHash() {
+  const newHash = '#' + getStateHash();
+  if (location.hash === newHash) return;
+  // replaceState doesn't trigger hashchange event → no infinite loop
+  history.replaceState(null, '', newHash);
+}
+
+function loadStateFromHash() {
+  const raw = location.hash.replace(/^#/, '');
+  if (!raw) return false;
+  const params = new URLSearchParams(raw);
+  const mode   = params.get('mode');
+  const view   = params.get('view');
+  const branch = params.get('branch');
+  const metric = params.get('metric');
+  const from   = params.get('from');
+  const to     = params.get('to');
+  // Validate before assignment to prevent broken state from typo'd URLs
+  if (mode && VALID_MODES.includes(mode))     activeMode   = mode;
+  if (view && VALID_VIEWS.includes(view))     activeView   = view;
+  if (branch && BRANCHES.some(b => b.id === branch || branch === 'all')) activeBranch = branch;
+  if (metric && VALID_METRICS.includes(metric)) revenueMode = metric;
+  if (from && /^\d{4}-\d{2}-\d{2}$/.test(from) && to && /^\d{4}-\d{2}-\d{2}$/.test(to)) {
+    dateRange = { start: from, end: to };
+  }
+  return true;
+}
+
+// Browser back/forward buttons trigger hashchange — re-render
+window.addEventListener('hashchange', () => {
+  if (loadStateFromHash()) renderAll();
+});
 
 // Wire up login button
 document.getElementById('loginBtn').addEventListener('click', async () => {
@@ -3448,6 +3503,8 @@ renderAll = function() {
 
     _origRenderAll();
   }
+  // Persist UI state to URL hash so F5/refresh restores the same view
+  if (typeof syncStateToHash === 'function') syncStateToHash();
 };
 
 // Bootstrap: kick off Firebase when DOM ready
