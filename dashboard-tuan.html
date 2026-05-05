@@ -448,7 +448,7 @@
       </div>
 
       <div class="branch-bar" style="padding-top:0;">
-        <span class="branch-bar-label">Doanh thu hiển thị:</span>
+        <span class="branch-bar-label">Hiển thị thông tin:</span>
         <div class="metric-toggles" id="revenueModeToggle">
           <div class="metric-toggle on" data-mode="net" title="Doanh thu sau khi trừ khuyến mãi">DT thuần</div>
           <div class="metric-toggle" data-mode="gross" title="Doanh thu chưa trừ khuyến mãi">DT gộp</div>
@@ -475,27 +475,6 @@
         </div>
       </section>
 
-      <section class="row r-1-1">
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <h3 id="chartSecondaryTitle">Khách hàng</h3>
-              <p id="chartSecondarySubtitle"></p>
-            </div>
-          </div>
-          <div class="chart-wrap"><canvas id="customerChart"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <h3 id="rightCardTitle">Chi tiết nguồn khách</h3>
-              <p id="rightCardSubtitle">Top nguồn khách trong kỳ</p>
-            </div>
-          </div>
-          <div id="rightCardBody"><div class="source-list" id="sourceList"></div></div>
-        </div>
-      </section>
-
       <section class="card hidden" id="studentCourseSection" style="margin-bottom:20px;">
         <div class="card-head">
           <div>
@@ -507,7 +486,7 @@
         <div class="chart-wrap"><canvas id="studentCourseChart"></canvas></div>
       </section>
 
-      <section class="table-card">
+      <section class="table-card" id="tableCardSection">
         <div class="table-head">
           <div>
             <h3 id="tableTitle">Dữ liệu tuần đã nhập</h3>
@@ -2021,6 +2000,8 @@ function _renderSourceChart_legacy_unused(){
 }
 
 function renderCustomerChart(){
+  // Canvas removed from layout — bail out silently
+  if (!document.getElementById('customerChart')) return;
   let periods = aggregateByPeriod(activeBranch, activeMode);
   // Limit to the last 6 weeks for "Khách hàng theo tuần" and "Leads theo nguồn (tuần)" charts
   // (skip the chart-specific views: courses → "DT khoá học", students → "Số khoá theo loại", conversion → "Leads vs Khách")
@@ -2141,6 +2122,8 @@ function renderCustomerChart(){
 }
 
 function renderRightCard(){
+  // Right card removed from layout — bail out silently
+  if (!document.getElementById('rightCardTitle')) return;
   const ctxData = getContext();
   const periods = aggregateByPeriod(activeBranch, activeMode);
 
@@ -2343,11 +2326,16 @@ function renderStudentCourseChart(){
    RENDER: TABLE
 ========================================================== */
 function renderTable(){
+  // Hide entire table card in monthly mode — only meaningful at week granularity
+  const section = document.getElementById('tableCardSection');
+  if (section) section.style.display = (activeMode === 'monthly') ? 'none' : '';
+  if (activeMode === 'monthly') return;
+
   const entries = getEntries(activeBranch).slice().sort((a,b) =>
     b.weekStart.localeCompare(a.weekStart) || a.branchId.localeCompare(b.branchId)
   );
   const area = $('#tableArea');
-  $('#tableTitle').textContent = activeMode === 'monthly' ? 'Dữ liệu tuần đã nhập (gộp tháng ở biểu đồ trên)' : 'Dữ liệu tuần đã nhập';
+  $('#tableTitle').textContent = 'Dữ liệu tuần đã nhập';
 
   if (entries.length === 0) {
     area.innerHTML = `
