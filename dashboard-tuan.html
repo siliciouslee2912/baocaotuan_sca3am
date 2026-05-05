@@ -380,11 +380,6 @@
       Báo cáo
       <small>Theo tuần</small>
     </div>
-    <div class="nav-item" data-mode="pnl">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6"/></svg>
-      Lợi nhuận
-      <small>P&amp;L theo tháng</small>
-    </div>
     <div class="nav-item" data-mode="staff">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
       Hiệu suất KTV
@@ -458,13 +453,16 @@
           <div class="metric-toggle on" data-mode="net" title="Doanh thu sau khi trừ khuyến mãi">DT thuần</div>
           <div class="metric-toggle" data-mode="gross" title="Doanh thu chưa trừ khuyến mãi">DT gộp</div>
           <div class="metric-toggle" data-mode="promo" title="Tổng giảm trừ khuyến mãi">Giảm trừ KM</div>
+          <div class="metric-toggle" data-mode="profit" title="Lợi nhuận = Doanh thu − Chi phí (từ P&amp;L)">Lợi nhuận</div>
+          <div class="metric-toggle" data-mode="cost" title="Tổng chi phí từ báo cáo P&amp;L">Chi phí</div>
+          <div class="metric-toggle" data-mode="customers" title="Số khách hàng (mới + cũ)">Khách hàng</div>
         </div>
       </div>
 
       <div id="defaultView">
       <section class="stats" id="stats"></section>
 
-      <section class="row r-2">
+      <section class="row r-1">
         <div class="card">
           <div class="card-head">
             <div>
@@ -473,16 +471,7 @@
             </div>
             <div id="metricToggles" class="metric-toggles hidden"></div>
           </div>
-          <div class="chart-wrap"><canvas id="mainChart"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <h3>Nguồn khách hàng</h3>
-              <p>Tỷ lệ khách theo nguồn (toàn kỳ)</p>
-            </div>
-          </div>
-          <div class="chart-wrap"><canvas id="sourceChart"></canvas></div>
+          <div class="chart-wrap" style="height:380px;"><canvas id="mainChart"></canvas></div>
         </div>
       </section>
 
@@ -532,25 +521,6 @@
         <div id="tableArea"></div>
       </section>
       </div><!-- /#defaultView -->
-
-      <!-- ============== P&L VIEW (Lợi nhuận) ============== -->
-      <div id="pnlView" class="pnl-view">
-        <div class="pnl-controls">
-          <span class="branch-bar-label">Cơ sở:</span>
-          <div class="pnl-branches-tabs" id="pnlBranchTabs"></div>
-        </div>
-        <section class="pnl-summary-grid" id="pnlSummary"></section>
-        <section class="card" style="margin-bottom:18px;">
-          <div class="card-head"><h3>Doanh thu · Chi phí · Lợi nhuận theo tháng</h3></div>
-          <div class="card-body" style="padding:16px;"><canvas id="pnlChart" height="100"></canvas></div>
-        </section>
-        <section class="card">
-          <div class="card-head"><h3>Chi tiết P&amp;L</h3><p style="font-size:12px;color:var(--text-muted);">Tất cả số liệu theo tháng (T1/2025 → T2/2026)</p></div>
-          <div class="card-body" style="padding:6px 16px 16px;overflow-x:auto;">
-            <table class="pnl-table" id="pnlTable"></table>
-          </div>
-        </section>
-      </div>
 
       <!-- ============== KTV VIEW (Hiệu suất nhân viên) ============== -->
       <div id="ktvView" class="ktv-view">
@@ -818,7 +788,7 @@ function toISODate(d){ const x = new Date(d); const o = x.getTimezoneOffset(); r
 function startOfWeek(d){ const x = new Date(d); const day = (x.getDay()+6)%7; x.setDate(x.getDate()-day); x.setHours(0,0,0,0); return x; }
 function endOfWeek(d){ const x = startOfWeek(d); x.setDate(x.getDate()+6); return x; }
 function defaultDateRange(mode){
-  // Default ranges per mode: weekly = last 10 weeks, monthly = last 12 months (ending at current period)
+  // Default ranges per mode: weekly = last 10 weeks, monthly = last 18 months
   const today = new Date();
   if (mode === 'weekly') {
     const start = startOfWeek(today);
@@ -826,7 +796,7 @@ function defaultDateRange(mode){
     return { start: toISODate(start), end: toISODate(endOfWeek(today)) };
   }
   // Monthly (default)
-  const start = new Date(today.getFullYear(), today.getMonth() - 11, 1);  // first day of (current month - 11) = 12 months total
+  const start = new Date(today.getFullYear(), today.getMonth() - 17, 1);  // first day of (current month - 17) = 18 months total
   const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);     // last day of current month
   return { start: toISODate(start), end: toISODate(end) };
 }
@@ -1226,7 +1196,7 @@ window.resetData = function(){
 let activeMode = 'monthly';     // 'monthly' | 'weekly'
 let activeBranch = 'all';
 let activeView = 'overview';    // 'overview' | 'customers' | 'service' | 'product' | 'courses' | 'leads' | 'students' | 'conversion'
-let revenueMode = 'net';        // 'net' | 'gross' | 'promo' — what revenue figure to show on dashboard
+let revenueMode = 'net';        // 'net' | 'gross' | 'promo' | 'profit' | 'cost' | 'customers' — main chart metric
 let dateRange = defaultDateRange(activeMode);  // weekly = last 10 weeks, monthly = last 12 months
 let metricToggles = { leads: true, customers: true, courses: true, revenue: true };  // for SCA dashboard
 let studentCourseToggles = { leads: true, customers: true, courses: true };  // for SCA leads/students/courses chart
@@ -1606,6 +1576,194 @@ function renderStats(){
 ========================================================== */
 let mainChart, sourceChart, customerChart;
 
+/* ==========================================================
+   P&L LOOKUP HELPERS — used for profit/cost metrics
+========================================================== */
+const PNL_KEY_MAP = {
+  'tx-soan': 'tx_soan',
+  'quan-hoa': 'quan_hoa',
+  'ha-dong': 'ha_dong',
+  'sca': 'sca'
+};
+
+// Get P&L (revenue, cost, profit) for a given branch + month (YYYY-MM)
+// Returns null if month not in P&L data range, or { revenue, cost, profit }
+function pnlForMonth(branchId, monthKeyStr){
+  if (!DATA.pnl || !DATA.pnl.periods) return null;
+  const idx = DATA.pnl.periods.indexOf(monthKeyStr);
+  if (idx < 0) return null;
+  const branchKeys = (branchId === 'all')
+    ? ['tx_soan','quan_hoa','ha_dong','sca']
+    : [PNL_KEY_MAP[branchId]].filter(Boolean);
+  let rev = 0, cost = 0;
+  branchKeys.forEach(bk => {
+    const block = DATA.pnl[bk];
+    if (!block) return;
+    Object.entries(block).forEach(([label, info]) => {
+      if (!info || info.type !== 'data') return;
+      const up = label.toUpperCase().trim();
+      if (up === 'DOANH THU') rev += info.values[idx] || 0;
+      else if (up.includes('TỔNG CHI PHÍ')) cost += info.values[idx] || 0;
+    });
+  });
+  return { revenue: rev, cost: cost, profit: rev - cost };
+}
+
+// Compute average cost-ratio of last `n` available P&L months (for fallback when month outside P&L range)
+function pnlAvgCostRatio(branchId, n){
+  if (!DATA.pnl || !DATA.pnl.periods) return null;
+  const branchKeys = (branchId === 'all')
+    ? ['tx_soan','quan_hoa','ha_dong','sca']
+    : [PNL_KEY_MAP[branchId]].filter(Boolean);
+  let totalRev = 0, totalCost = 0;
+  const periods = DATA.pnl.periods.slice(-n);
+  periods.forEach(p => {
+    const r = pnlForMonth(branchId, p);
+    if (r && r.revenue > 0) {
+      totalRev += r.revenue;
+      totalCost += r.cost;
+    }
+  });
+  return totalRev > 0 ? (totalCost / totalRev) : null;
+}
+
+// Allocate weekly cost/profit proportionally based on monthly cost ratio
+// weekStart: 'YYYY-MM-DD', netRevenue: number — returns {cost, profit} or null
+function pnlForWeek(branchId, weekStartISO, netRevenue){
+  const m = monthKey(weekStartISO);
+  let monthly = pnlForMonth(branchId, m);
+  let ratio = null;
+  if (monthly && monthly.revenue > 0) {
+    ratio = monthly.cost / monthly.revenue;
+  } else {
+    ratio = pnlAvgCostRatio(branchId, 6);  // fallback: last 6 months avg
+  }
+  if (ratio === null) return null;
+  const cost = netRevenue * ratio;
+  return { cost: cost, profit: netRevenue - cost };
+}
+
+// Get net revenue (DT thuần) for a period from periods data
+function netRevenueOfPeriod(p){
+  const sv = (p.revenue?.service || 0) - (p.promotions?.service || 0);
+  const pr = (p.revenue?.product || 0) - (p.promotions?.product || 0);
+  const co = (p.revenue?.courses || 0) - (p.promotions?.courses || 0);
+  return Math.max(0, sv) + Math.max(0, pr) + Math.max(0, co);
+}
+
+// Build profit/cost/customer values per period entry
+// Returns array of { revenue, cost, profit, customers } aligned with periods
+function buildSpecialMetrics(periods, branchId){
+  return periods.map(p => {
+    const customers = p.totalCust || 0;
+    const netRev = netRevenueOfPeriod(p);
+    let cost = 0, profit = 0, isFromPnl = false;
+    if (activeMode === 'monthly') {
+      const monthly = pnlForMonth(branchId, p.key);
+      if (monthly) {
+        // Use P&L numbers directly when available (monthly mode = source of truth)
+        cost = monthly.cost;
+        profit = monthly.profit;
+        isFromPnl = true;
+      } else {
+        // Outside P&L range: estimate by cost ratio
+        const w = pnlForWeek(branchId, p.key + '-01', netRev);
+        if (w) { cost = w.cost; profit = w.profit; }
+      }
+    } else {
+      // Weekly: allocate from monthly cost ratio
+      const w = pnlForWeek(branchId, p.key, netRev);
+      if (w) { cost = w.cost; profit = w.profit; }
+    }
+    return { revenue: netRev, cost, profit, customers, isFromPnl };
+  });
+}
+
+function renderSpecialMetricChart(ctx, periods, labels, makeGrad){
+  const metrics = buildSpecialMetrics(periods, activeBranch);
+  let datasets, title, subtitle, yLabel, isCurrency = true, color;
+  let isCustomers = false;
+
+  if (revenueMode === 'profit') {
+    color = '#22c55e';
+    datasets = [{
+      label: 'Lợi nhuận',
+      data: metrics.map(m => m.profit / 1_000_000),
+      borderColor: color,
+      backgroundColor: makeGrad('rgba(34,197,94,.30)','rgba(34,197,94,0)'),
+      borderWidth: 2.5, tension: 0.4, fill: true,
+      pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6,
+      // Color points red when negative
+      pointBackgroundColor: metrics.map(m => m.profit < 0 ? '#ef4444' : '#fff'),
+      pointBorderColor: metrics.map(m => m.profit < 0 ? '#ef4444' : color)
+    }];
+    title = 'Lợi nhuận theo ' + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    subtitle = activeMode === 'monthly'
+      ? 'Lấy trực tiếp từ báo cáo P&L (đơn vị: triệu đồng)'
+      : 'Phân bổ từ chi phí tháng theo tỉ lệ doanh thu (ước tính, đơn vị: triệu đồng)';
+    yLabel = 'tr';
+  } else if (revenueMode === 'cost') {
+    color = '#fb923c';
+    datasets = [{
+      label: 'Tổng chi phí',
+      data: metrics.map(m => m.cost / 1_000_000),
+      borderColor: color,
+      backgroundColor: makeGrad('rgba(251,146,60,.30)','rgba(251,146,60,0)'),
+      borderWidth: 2.5, tension: 0.4, fill: true,
+      pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
+    }];
+    title = 'Chi phí theo ' + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    subtitle = activeMode === 'monthly'
+      ? 'Tổng chi phí từ báo cáo P&L (đơn vị: triệu đồng)'
+      : 'Phân bổ chi phí tháng cho các tuần theo tỉ lệ doanh thu (đơn vị: triệu đồng)';
+    yLabel = 'tr';
+  } else { // customers
+    color = '#10b981';
+    datasets = [{
+      label: 'Số khách hàng',
+      data: metrics.map(m => m.customers),
+      borderColor: color,
+      backgroundColor: makeGrad('rgba(16,185,129,.30)','rgba(16,185,129,0)'),
+      borderWidth: 2.5, tension: 0.4, fill: true,
+      pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
+    }];
+    title = 'Khách hàng theo ' + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    subtitle = 'Tổng số khách (mới + cũ) qua các kỳ';
+    yLabel = '';
+    isCurrency = false;
+    isCustomers = true;
+  }
+
+  mainChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, usePointStyle: true, padding: 16 } },
+        tooltip: {
+          backgroundColor: '#1a2238', titleColor: '#fff', bodyColor: '#cdd5e3', padding: 12, cornerRadius: 8, displayColors: true,
+          callbacks: {
+            label: (c) => {
+              if (isCustomers) return c.dataset.label + ': ' + fmtNum(c.parsed.y) + ' khách';
+              return c.dataset.label + ': ' + c.parsed.y.toFixed(1) + ' tr';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { beginAtZero: false, grid: { color: '#eef2f9' }, border: { display: false },
+             ticks: { callback: v => yLabel ? v + ' ' + yLabel : v } }
+      }
+    }
+  });
+
+  $('#chartMainTitle').textContent = title;
+  $('#chartMainSubtitle').textContent = subtitle;
+}
+
 function renderMainChart(){
   let periods = aggregateByPeriod(activeBranch, activeMode);
   // Limit to the last 6 weeks for the "Doanh thu theo tuần" (overview) and "Khách hàng theo tuần" (customers) charts
@@ -1646,6 +1804,15 @@ function renderMainChart(){
     if (revenueMode === 'promo') return pr;
     return Math.max(0, g - pr);
   };
+
+  // ============================================================
+  // SPECIAL MODES: profit, cost, customers — full-period chart that
+  // overrides the per-view (overview/service/product/courses/etc.)
+  // logic below. Renders directly here and returns.
+  // ============================================================
+  if (revenueMode === 'profit' || revenueMode === 'cost' || revenueMode === 'customers') {
+    return renderSpecialMetricChart(ctx, periods, labels, makeGrad);
+  }
 
   if (context.branch.type === 'academy' && activeView === 'overview') {
     // SCA: chỉ hiển thị doanh thu trên main chart
@@ -1772,6 +1939,14 @@ function renderMainChart(){
 }
 
 function renderSourceChart(){
+  // no-op: source chart card removed from layout. Function kept as stub to avoid errors
+  // if any leftover caller references it. All metric display logic now handled in renderMainChart.
+  const canvas = document.getElementById('sourceChart');
+  if (!canvas) return;
+  if (sourceChart) { sourceChart.destroy(); sourceChart = null; }
+}
+
+function _renderSourceChart_legacy_unused(){
   const periods = aggregateByPeriod(activeBranch, activeMode);
   const ctx = $('#sourceChart').getContext('2d');
   if (sourceChart) { sourceChart.destroy(); sourceChart = null; }
@@ -2308,7 +2483,6 @@ function renderAll(){
   renderMetricToggles();
   renderStats();
   renderMainChart();
-  renderSourceChart();
   renderCustomerChart();
   renderRightCard();
   renderStudentCourseChart();
@@ -3061,138 +3235,7 @@ saveData = function(data) {
   }
 };
 
-/* ==========================================================
-   PNL VIEW (Lợi nhuận)
-========================================================== */
-const PNL_BRANCHES = [
-  { id: 'tx_soan', name: 'Trần Xuân Soạn', color: '#ef4444' },
-  { id: 'quan_hoa', name: 'Quan Hoa', color: '#f59e0b' },
-  { id: 'ha_dong', name: 'Hà Đông', color: '#10b981' },
-  { id: 'sca', name: 'SCA Academy', color: '#8b5cf6' }
-];
-let pnlActiveBranch = 'tx_soan';
-let pnlChartInstance = null;
-
-function pnlPeriodLabel(p) {
-  // "2025-01" → "T1/2025"
-  const [y, m] = p.split('-');
-  return 'T' + parseInt(m, 10) + '/' + y;
-}
-function fmtMoney(n) {
-  if (!n) return '0';
-  const abs = Math.abs(n);
-  if (abs >= 1e9) return (n/1e9).toFixed(2) + 'B';
-  if (abs >= 1e6) return (n/1e6).toFixed(1) + 'M';
-  if (abs >= 1e3) return (n/1e3).toFixed(0) + 'K';
-  return n.toFixed(0);
-}
-
-function renderPnlView() {
-  if (!DATA.pnl) DATA.pnl = PNL_DATA;
-  const data = DATA.pnl;
-
-  // Render branch tabs
-  const tabsEl = document.getElementById('pnlBranchTabs');
-  tabsEl.innerHTML = '';
-  PNL_BRANCHES.forEach(b => {
-    const btn = document.createElement('button');
-    btn.textContent = b.name;
-    if (b.id === pnlActiveBranch) btn.classList.add('on');
-    btn.onclick = () => { pnlActiveBranch = b.id; renderPnlView(); };
-    tabsEl.appendChild(btn);
-  });
-
-  const branch = data[pnlActiveBranch];
-  if (!branch) return;
-
-  // Find key rows
-  const revKey = Object.keys(branch).find(k => k.toUpperCase() === 'DOANH THU');
-  const costKey = Object.keys(branch).find(k => k.toUpperCase().includes('TỔNG CHI PHÍ'));
-  const profitKey = Object.keys(branch).find(k => k.toUpperCase().includes('LỢI NHUẬN'));
-  const revArr = revKey ? branch[revKey].values : data.periods.map(() => 0);
-  const costArr = costKey ? branch[costKey].values : data.periods.map(() => 0);
-  const profitArr = profitKey ? branch[profitKey].values : data.periods.map((_, i) => revArr[i] - costArr[i]);
-
-  const totalRev = revArr.reduce((a, b) => a + b, 0);
-  const totalCost = costArr.reduce((a, b) => a + b, 0);
-  const totalProfit = profitArr.reduce((a, b) => a + b, 0);
-  const margin = totalRev > 0 ? (totalProfit / totalRev) * 100 : 0;
-
-  // Summary cards
-  const sumEl = document.getElementById('pnlSummary');
-  sumEl.innerHTML = `
-    <div class="pnl-summary-card">
-      <div class="label">Doanh thu</div>
-      <div class="value">${fmtVND(totalRev)}</div>
-      <div class="sub">14 tháng (T1/2025 → T2/2026)</div>
-    </div>
-    <div class="pnl-summary-card">
-      <div class="label">Tổng chi phí</div>
-      <div class="value">${fmtVND(totalCost)}</div>
-      <div class="sub">${totalRev > 0 ? (totalCost/totalRev*100).toFixed(1) + '% doanh thu' : '—'}</div>
-    </div>
-    <div class="pnl-summary-card profit">
-      <div class="label">Lợi nhuận</div>
-      <div class="value ${totalProfit >= 0 ? 'positive' : 'negative'}">${fmtVND(totalProfit)}</div>
-      <div class="sub">Sau khi trừ tất cả chi phí</div>
-    </div>
-    <div class="pnl-summary-card profit">
-      <div class="label">Biên LN (Margin)</div>
-      <div class="value ${margin >= 0 ? 'positive' : 'negative'}">${margin.toFixed(1)}%</div>
-      <div class="sub">Lợi nhuận / Doanh thu</div>
-    </div>`;
-
-  // Chart
-  const ctx = document.getElementById('pnlChart');
-  if (pnlChartInstance) pnlChartInstance.destroy();
-  pnlChartInstance = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: data.periods.map(pnlPeriodLabel),
-      datasets: [
-        { label: 'Doanh thu', data: revArr, backgroundColor: '#3b82f6', order: 2 },
-        { label: 'Chi phí',   data: costArr, backgroundColor: '#fb923c', order: 2 },
-        { label: 'Lợi nhuận', data: profitArr, type: 'line', borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.15)', borderWidth: 2.5, tension: 0.3, fill: true, pointRadius: 4, order: 1 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'bottom' },
-        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + fmtVND(c.parsed.y) } }
-      },
-      scales: { y: { ticks: { callback: v => fmtMoney(v) } } }
-    }
-  });
-
-  // Detailed table
-  const tbl = document.getElementById('pnlTable');
-  let html = '<thead><tr><th>Khoản mục</th>';
-  data.periods.forEach(p => html += `<th>${pnlPeriodLabel(p)}</th>`);
-  html += '<th>Tổng</th></tr></thead><tbody>';
-
-  Object.entries(branch).forEach(([label, info]) => {
-    if (info.type === 'header') {
-      html += `<tr class="section-header"><td colspan="${data.periods.length + 2}">${label}</td></tr>`;
-      return;
-    }
-    const isTotal = label.toUpperCase().includes('TỔNG CHI PHÍ') || label.toUpperCase() === 'DOANH THU';
-    const isProfit = label.toUpperCase().includes('LỢI NHUẬN');
-    const sum = info.values.reduce((a, b) => a + b, 0);
-    let cls = '';
-    if (isProfit) cls = 'profit-row' + (sum < 0 ? ' negative' : '');
-    else if (isTotal) cls = 'total-row';
-    html += `<tr class="${cls}"><td${cls === '' ? ' class="indent"' : ''}>${label}</td>`;
-    info.values.forEach(v => {
-      const cellClass = isProfit ? (v >= 0 ? 'text-positive' : 'text-negative') : '';
-      html += `<td class="${cellClass}">${v ? fmtNum(v) : ''}</td>`;
-    });
-    const sumCellClass = isProfit ? (sum >= 0 ? 'text-positive' : 'text-negative') : '';
-    html += `<td class="${sumCellClass}"><strong>${sum ? fmtNum(sum) : ''}</strong></td></tr>`;
-  });
-  html += '</tbody>';
-  tbl.innerHTML = html;
-}
+/* PNL view removed — profit/cost now shown via toggle on main chart */
 
 /* ==========================================================
    KTV VIEW (Hiệu suất nhân viên)
@@ -3353,19 +3396,9 @@ document.getElementById('ktvDetailModal').onclick = (e) => {
 const _origRenderAll = renderAll;
 renderAll = function() {
   const dv = document.getElementById('defaultView');
-  const pv = document.getElementById('pnlView');
   const kv = document.getElementById('ktvView');
-  if (activeMode === 'pnl') {
-    dv.style.display = 'none'; pv.classList.add('active'); kv.classList.remove('active');
-    // Hide controls/topbar bits not relevant
-    const dr = document.getElementById('dateRange'); if (dr) dr.style.display = 'none';
-    const ab = document.getElementById('addBtn'); if (ab) ab.style.display = 'none';
-    const bb = document.querySelectorAll('.branch-bar'); bb.forEach(b => b.style.display = 'none');
-    document.getElementById('pageTitle').textContent = 'Lợi nhuận (P&L)';
-    document.getElementById('pageSubtitle').textContent = 'Doanh thu, chi phí và lợi nhuận theo cơ sở (T1/2025 → T2/2026)';
-    renderPnlView();
-  } else if (activeMode === 'staff') {
-    dv.style.display = 'none'; pv.classList.remove('active'); kv.classList.add('active');
+  if (activeMode === 'staff') {
+    dv.style.display = 'none'; kv.classList.add('active');
     const dr = document.getElementById('dateRange'); if (dr) dr.style.display = 'none';
     const ab = document.getElementById('addBtn'); if (ab) ab.style.display = 'none';
     const bb = document.querySelectorAll('.branch-bar'); bb.forEach(b => b.style.display = 'none');
@@ -3373,7 +3406,7 @@ renderAll = function() {
     document.getElementById('pageSubtitle').textContent = 'Số ca, lương và dịch vụ phổ biến của từng kỹ thuật viên';
     renderKtvView();
   } else {
-    dv.style.display = ''; pv.classList.remove('active'); kv.classList.remove('active');
+    dv.style.display = ''; kv.classList.remove('active');
     const dr = document.getElementById('dateRange'); if (dr) dr.style.display = '';
     const ab = document.getElementById('addBtn'); if (ab) ab.style.display = '';
     const bb = document.querySelectorAll('.branch-bar'); bb.forEach(b => b.style.display = '');
