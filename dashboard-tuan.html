@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.09" />
+<meta name="version" content="v2026.05.05.10" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 per-week-iso-month -->
+<!-- BUILD: 2026-05-05 voucher-promo -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -493,9 +493,11 @@
       <div class="branch-bar" style="padding-top:0;">
         <span class="branch-bar-label">Hiển thị thông tin:</span>
         <div class="metric-toggles" id="revenueModeToggle">
-          <div class="metric-toggle on" data-mode="net" title="Doanh thu sau khi trừ khuyến mãi">DT thuần</div>
-          <div class="metric-toggle" data-mode="gross" title="Doanh thu chưa trừ khuyến mãi">DT gộp</div>
-          <div class="metric-toggle" data-mode="promo" title="Tổng giảm trừ khuyến mãi">Giảm trừ KM</div>
+          <div class="metric-toggle on" data-mode="net" title="Doanh thu sau khi trừ tất cả khuyến mãi (= TỔNG ĐÃ THANH TOÁN)">DT thuần</div>
+          <div class="metric-toggle" data-mode="gross" title="Doanh thu chưa trừ khuyến mãi (= NGUYÊN GIÁ)">DT gộp</div>
+          <div class="metric-toggle" data-mode="promo_ctkm" title="Giảm giá chương trình KM (cột GIẢM / TĂNG GIÁ)">Giảm KM CTKM</div>
+          <div class="metric-toggle" data-mode="promo_voucher" title="Giảm giá voucher sinh nhật / hạng khách (= DT gộp − DT thuần − CTKM)">Giảm KM voucher</div>
+          <div class="metric-toggle" data-mode="promo" title="Tổng giảm trừ = CTKM + Voucher (= DT gộp − DT thuần)">Tổng giảm trừ</div>
           <div class="metric-toggle weekly-hidden" data-mode="profit" title="Lợi nhuận = Doanh thu − Chi phí (từ P&amp;L)">Lợi nhuận</div>
           <div class="metric-toggle weekly-hidden" data-mode="cost" title="Tổng chi phí từ báo cáo P&amp;L">Chi phí</div>
           <div class="metric-toggle" data-mode="customers" title="Số khách hàng (đếm theo Mã KH unique)">Khách hàng</div>
@@ -1303,7 +1305,8 @@ function aggregateByPeriod(branchId, mode){
         leads: SOURCES.reduce((o,s)=>(o[s.id]=0,o),{}),
         courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0,promotion:0},o),{}),
         revenue: { service: 0, product: 0, courses: 0 },
-        promotions: { service: 0, product: 0, courses: 0 },
+        promotions: { service: 0, product: 0, courses: 0 },   // CTKM only
+        promoVoucher: { service: 0, product: 0, courses: 0 }, // voucher SN/hạng KH
         returning: 0,
         newCustTotal: 0,
         leadsTotal: 0,
@@ -1338,6 +1341,9 @@ function aggregateByPeriod(branchId, mode){
     p.revenue.product += entryProductRev(e);
     p.promotions.service += entryServicePromo(e);
     p.promotions.product += entryProductPromo(e);
+    // Voucher promotions (sinh nhật / hạng khách) — only present on uploaded entries
+    p.promoVoucher.service += (e.promoVoucher?.service || 0);
+    p.promoVoucher.product += (e.promoVoucher?.product || 0);
     if (branch.type === 'academy') {
       COURSES.forEach(c => { p.promotions.courses += entryCoursePromo(e, c.id); });
     }
@@ -1367,6 +1373,7 @@ function aggregateByPeriod(branchId, mode){
       courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0,promotion:0},o),{}),
       revenue: { service: 0, product: 0, courses: 0 },
       promotions: { service: 0, product: 0, courses: 0 },
+      promoVoucher: { service: 0, product: 0, courses: 0 },
       returning: 0, newCustTotal: 0, leadsTotal: 0, studentTotal: 0,
       totalCust: 0, totalNewCust: 0, totalLeads: 0, totalCourses: 0, totalOrders: 0
     };
@@ -1746,9 +1753,10 @@ function pnlForWeek(branchId, weekStartISO, netRevenue){
 
 // Get net revenue (DT thuần) for a period from periods data
 function netRevenueOfPeriod(p){
-  const sv = (p.revenue?.service || 0) - (p.promotions?.service || 0);
-  const pr = (p.revenue?.product || 0) - (p.promotions?.product || 0);
-  const co = (p.revenue?.courses || 0) - (p.promotions?.courses || 0);
+  // Net = gross - CTKM - voucher (both types of giảm trừ)
+  const sv = (p.revenue?.service || 0) - (p.promotions?.service || 0) - (p.promoVoucher?.service || 0);
+  const pr = (p.revenue?.product || 0) - (p.promotions?.product || 0) - (p.promoVoucher?.product || 0);
+  const co = (p.revenue?.courses || 0) - (p.promotions?.courses || 0) - (p.promoVoucher?.courses || 0);
   return Math.max(0, sv) + Math.max(0, pr) + Math.max(0, co);
 }
 
@@ -1902,24 +1910,45 @@ function renderMainChart(){
   let title, subtitle;
 
   // Helper to extract revenue value (per category) according to revenueMode
-  const _modeLabel = revenueMode === 'net' ? 'thuần' : revenueMode === 'gross' ? 'gộp' : 'KM';
+  const _modeLabel = (
+    revenueMode === 'net'           ? 'thuần' :
+    revenueMode === 'gross'         ? 'gộp' :
+    revenueMode === 'promo_ctkm'    ? 'KM CTKM' :
+    revenueMode === 'promo_voucher' ? 'KM voucher' :
+    revenueMode === 'promo'         ? 'tổng KM' :
+    'KM'
+  );
+  // Each value extractor returns the metric for a single revenue category
+  // depending on revenueMode. CTKM = promotions.X, Voucher = promoVoucher.X.
   const valSvc = (p) => {
-    const g = p.revenue?.service || 0; const pr = p.promotions?.service || 0;
-    if (revenueMode === 'gross') return g;
-    if (revenueMode === 'promo') return pr;
-    return Math.max(0, g - pr);
+    const g    = p.revenue?.service       || 0;
+    const ctkm = p.promotions?.service    || 0;
+    const vouc = p.promoVoucher?.service  || 0;
+    if (revenueMode === 'gross')         return g;
+    if (revenueMode === 'promo_ctkm')    return ctkm;
+    if (revenueMode === 'promo_voucher') return vouc;
+    if (revenueMode === 'promo')         return ctkm + vouc;
+    return Math.max(0, g - ctkm - vouc);  // net
   };
   const valProd = (p) => {
-    const g = p.revenue?.product || 0; const pr = p.promotions?.product || 0;
-    if (revenueMode === 'gross') return g;
-    if (revenueMode === 'promo') return pr;
-    return Math.max(0, g - pr);
+    const g    = p.revenue?.product       || 0;
+    const ctkm = p.promotions?.product    || 0;
+    const vouc = p.promoVoucher?.product  || 0;
+    if (revenueMode === 'gross')         return g;
+    if (revenueMode === 'promo_ctkm')    return ctkm;
+    if (revenueMode === 'promo_voucher') return vouc;
+    if (revenueMode === 'promo')         return ctkm + vouc;
+    return Math.max(0, g - ctkm - vouc);
   };
   const valCourse = (p) => {
-    const g = p.revenue?.courses || 0; const pr = p.promotions?.courses || 0;
-    if (revenueMode === 'gross') return g;
-    if (revenueMode === 'promo') return pr;
-    return Math.max(0, g - pr);
+    const g    = p.revenue?.courses       || 0;
+    const ctkm = p.promotions?.courses    || 0;
+    const vouc = p.promoVoucher?.courses  || 0;
+    if (revenueMode === 'gross')         return g;
+    if (revenueMode === 'promo_ctkm')    return ctkm;
+    if (revenueMode === 'promo_voucher') return vouc;
+    if (revenueMode === 'promo')         return ctkm + vouc;
+    return Math.max(0, g - ctkm - vouc);
   };
 
   // ============================================================
@@ -2159,12 +2188,22 @@ function renderCustomerChart(){
     label2Subtitle = 'Phân bố leads theo từng nguồn';
     valueLabel = 'leads';
   } else if (activeView === 'courses' && ctxData.showAcademy) {
-    const _modeLabel2 = revenueMode === 'net' ? 'thuần' : revenueMode === 'gross' ? 'gộp' : 'KM';
+    const _modeLabel2 = (
+      revenueMode === 'net'           ? 'thuần' :
+      revenueMode === 'gross'         ? 'gộp' :
+      revenueMode === 'promo_ctkm'    ? 'KM CTKM' :
+      revenueMode === 'promo_voucher' ? 'KM voucher' :
+      revenueMode === 'promo'         ? 'tổng KM' :
+      'KM'
+    );
     const valCourseId = (p, cid) => {
       const g = p.courses[cid].revenue || 0;
       const pr = p.courses[cid].promotion || 0;
-      if (revenueMode === 'gross') return g;
-      if (revenueMode === 'promo') return pr;
+      // SCA academy courses currently only have CTKM-style promo; voucher = 0
+      if (revenueMode === 'gross')         return g;
+      if (revenueMode === 'promo_ctkm')    return pr;
+      if (revenueMode === 'promo_voucher') return 0;
+      if (revenueMode === 'promo')         return pr;
       return Math.max(0, g - pr);
     };
     datasets = COURSES.map(c => ({
@@ -3359,7 +3398,7 @@ async function loadDataAndRender() {
 ========================================================== */
 const VALID_MODES = ['monthly', 'weekly', 'staff'];
 const VALID_VIEWS = ['overview', 'customers', 'service', 'product', 'courses', 'leads', 'students', 'conversion'];
-const VALID_METRICS = ['net', 'gross', 'promo', 'profit', 'cost', 'customers', 'orders'];
+const VALID_METRICS = ['net', 'gross', 'promo', 'promo_ctkm', 'promo_voucher', 'profit', 'cost', 'customers', 'orders'];
 
 function getStateHash() {
   const params = new URLSearchParams();
@@ -3570,16 +3609,21 @@ function parseExcelSalesFile(arrayBuffer) {
   }
 
   const weeks = [...weeklyMap.entries()]
-    .map(([wk, w]) => ({
-      weekStart: wk,
-      txCount: w.txCount,
-      gross: Math.round(w.gross),
-      net: Math.round(w.net),
-      promo: Math.round(w.promo),
-      customers: w.customers.size,
-      newCust: w.newSet.size,
-      returning: w.retSet.size
-    }))
+    .map(([wk, w]) => {
+      const gross = Math.round(w.gross);
+      const net = Math.round(w.net);
+      const promo = Math.round(w.promo);  // CTKM only (cột GIẢM / TĂNG GIÁ)
+      // Voucher (sinh nhật / hạng khách) = phần chênh còn lại
+      const voucher = Math.max(0, gross - net - promo);
+      return {
+        weekStart: wk,
+        txCount: w.txCount,
+        gross, net, promo, voucher,
+        customers: w.customers.size,
+        newCust: w.newSet.size,
+        returning: w.retSet.size
+      };
+    })
     .sort((a,b) => a.weekStart.localeCompare(b.weekStart));
 
   // Detect partial weeks (where week extends beyond file's date range)
@@ -3640,7 +3684,8 @@ function showUploadError(filename, msg) {
 function showUploadPreview(filename, r) {
   const totalGross = r.weeks.reduce((a,w)=>a+w.gross, 0);
   const totalNet   = r.weeks.reduce((a,w)=>a+w.net, 0);
-  const totalPromo = r.weeks.reduce((a,w)=>a+w.promo, 0);
+  const totalPromo = r.weeks.reduce((a,w)=>a+w.promo, 0);       // CTKM
+  const totalVoucher = r.weeks.reduce((a,w)=>a+w.voucher, 0);   // Voucher SN/hạng
   const totalCust  = r.weeks.reduce((a,w)=>a+w.customers, 0);
   const branchOpts = ['tx-soan','quan-hoa','ha-dong'].map(bid => {
     const b = getBranch(bid);
@@ -3667,7 +3712,8 @@ function showUploadPreview(filename, r) {
       <div class="upload-meta-item"><div class="label">Số tuần</div><div class="value">${r.weeks.length}</div></div>
       <div class="upload-meta-item"><div class="label">Khách hàng (đếm theo Mã KH)</div><div class="value">${fmtNum(totalCust)}</div></div>
       <div class="upload-meta-item"><div class="label">DT gộp (NGUYÊN GIÁ)</div><div class="value">${fmtVND(totalGross)}</div></div>
-      <div class="upload-meta-item"><div class="label">Giảm trừ KM (GIẢM/TĂNG GIÁ)</div><div class="value">${fmtVND(totalPromo)}</div></div>
+      <div class="upload-meta-item"><div class="label">Giảm KM CTKM (GIẢM/TĂNG GIÁ)</div><div class="value">${fmtVND(totalPromo)}</div></div>
+      <div class="upload-meta-item"><div class="label">Giảm KM voucher (SN/hạng KH)</div><div class="value">${fmtVND(totalVoucher)}</div></div>
       <div class="upload-meta-item"><div class="label">DT thuần (TỔNG ĐÃ TT)</div><div class="value">${fmtVND(totalNet)}</div></div>
     </div>
     ${partialWarning}
@@ -3675,7 +3721,7 @@ function showUploadPreview(filename, r) {
     <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
       <table class="upload-week-table">
         <thead><tr>
-          <th>Tuần bắt đầu</th><th>Tx</th><th>Khách hàng</th><th>Mới</th><th>Cũ</th><th>DT gộp</th><th>KM</th><th>DT thuần</th>
+          <th>Tuần bắt đầu</th><th>Tx</th><th>Khách hàng</th><th>Mới</th><th>Cũ</th><th>DT gộp</th><th>KM CTKM</th><th>KM voucher</th><th>DT thuần</th>
         </tr></thead>
         <tbody>${r.weeks.map(w => `
           <tr class="${w.partial ? 'partial-week' : ''}">
@@ -3686,15 +3732,18 @@ function showUploadPreview(filename, r) {
             <td style="color:#7c8aa3;">${fmtNum(w.returning)}</td>
             <td>${fmtVND(w.gross)}</td>
             <td>${fmtVND(w.promo)}</td>
+            <td>${fmtVND(w.voucher)}</td>
             <td>${fmtVND(w.net)}</td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
-      <strong>📊 Cách đếm:</strong> Khách hàng = số lượng <strong>Mã KH unique</strong> trong tuần (1 khách đến nhiều lần = 1).
-      Mới = lần đầu xuất hiện trong file, Cũ = đã có lần xuất hiện trước trong file.<br>
-      <strong>⚠ Lưu ý:</strong> DT thuần có thể nhỏ hơn (DT gộp − KM) nếu khách dùng voucher — voucher KHÔNG tính vào "Giảm trừ KM" theo định nghĩa hiện tại.<br>
+      <strong>📊 3 loại giảm trừ:</strong>
+      <strong>KM CTKM</strong> (cột "GIẢM / TĂNG GIÁ" trong file = giảm giá chương trình KM) &middot;
+      <strong>KM voucher</strong> (= DT gộp − DT thuần − KM CTKM = voucher sinh nhật / hạng khách) &middot;
+      <strong>Tổng giảm trừ</strong> = CTKM + voucher = DT gộp − DT thuần<br>
+      <strong>📊 Cách đếm:</strong> Khách hàng = số Mã KH unique. Mới = lần đầu xuất hiện trong file, Cũ = đã có lần trước.<br>
       <strong>💾 Khi bấm "Lưu":</strong> các tuần đã có sẵn của cơ sở này sẽ bị <strong>ghi đè</strong>.
     </div>
     <div class="upload-actions">
@@ -3733,7 +3782,8 @@ function confirmUpload() {
     month: weekISOMonth(w.weekStart),
     sources: {},
     revenue: { service: w.gross, product: 0 },
-    promotions: { service: w.promo, product: 0 }
+    promotions: { service: w.promo, product: 0 },         // CTKM only
+    promoVoucher: { service: w.voucher, product: 0 }       // Voucher sinh nhật/hạng KH
   }));
   // Remove existing entries for this branch + these week starts
   const weekSet = new Set(r.weeks.map(w => w.weekStart));
