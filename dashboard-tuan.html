@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.03" />
+<meta name="version" content="v2026.05.05.04" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 excel-upload -->
+<!-- BUILD: 2026-05-05 column-remap -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3387,17 +3387,24 @@ function findHeaderRow(rows) {
 }
 
 // Map header labels to column indices (handles slight variations)
+// COLUMN SEMANTICS (per user spec):
+//   DT GỘP   = NGUYÊN GIÁ (original price before any discount)
+//   GIẢM KM  = GIẢM / TĂNG GIÁ (manager-applied price adjustment)
+//   DT THUẦN = TỔNG ĐÃ THANH TOÁN (actual amount paid by customer)
+// Column "TỔNG TIỀN" is intentionally NOT read — it sits between NGUYÊN GIÁ
+// and TỔNG ĐÃ THANH TOÁN (after manager discount, before voucher), and including
+// it would cause confusion.
 function buildColMap(headerRow) {
   const map = {};
   headerRow.forEach((h, i) => {
-    const norm = String(h || '').trim().toUpperCase();
+    const norm = String(h || '').trim().toUpperCase().replace(/\s+/g, ' ');
     if (norm === 'CƠ SỞ') map.coSo = i;
     if (norm === 'NGÀY') map.date = i;
     if (norm === 'MÃ KHÁCH HÀNG') map.custId = i;
     if (norm === 'KHÁCH HÀNG') map.custName = i;
-    if (norm === 'TỔNG TIỀN') map.gross = i;
+    if (norm === 'NGUYÊN GIÁ') map.gross = i;
+    if (norm === 'GIẢM / TĂNG GIÁ' || norm === 'GIẢM/TĂNG GIÁ' || norm === 'GIẢM TĂNG GIÁ') map.promo = i;
     if (norm === 'TỔNG ĐÃ THANH TOÁN') map.net = i;
-    if (norm === 'NGUYÊN GIÁ') map.original = i;
   });
   return map;
 }
@@ -3423,7 +3430,7 @@ function parseExcelSalesFile(arrayBuffer) {
 
   const col = buildColMap(rows[hdrIdx]);
   if (col.date === undefined || col.net === undefined || col.gross === undefined) {
-    throw new Error('Thiếu cột bắt buộc: NGÀY, TỔNG TIỀN, TỔNG ĐÃ THANH TOÁN.');
+    throw new Error('Thiếu cột bắt buộc. File cần có: NGÀY, NGUYÊN GIÁ, TỔNG ĐÃ THANH TOÁN.');
   }
 
   const transactions = [];
@@ -3436,9 +3443,10 @@ function parseExcelSalesFile(arrayBuffer) {
     const branchId = detectBranchFromCoSo(coSo);
     if (branchId) branchCounts[branchId] = (branchCounts[branchId] || 0) + 1;
     const gross = Number(r[col.gross]) || 0;
+    const promo = col.promo !== undefined ? (Number(r[col.promo]) || 0) : 0;
     const net   = Number(r[col.net])   || 0;
     const custId = String(r[col.custId] || '').trim();
-    transactions.push({ dt, branchId, coSo, gross, net, custId });
+    transactions.push({ dt, branchId, coSo, gross, promo, net, custId });
   }
   if (transactions.length === 0) throw new Error('Không tìm thấy giao dịch hợp lệ trong file.');
 
@@ -3452,7 +3460,7 @@ function parseExcelSalesFile(arrayBuffer) {
   const dateMax = transactions[transactions.length - 1].dt;
 
   // Group by Monday-week, computing within-file new vs returning
-  const weeklyMap = new Map();  // weekStart ISO → {customers Set, newSet, retSet, gross, net, txCount}
+  const weeklyMap = new Map();  // weekStart ISO → {customers Set, newSet, retSet, gross, promo, net, txCount}
   const seenCusts = new Set();
   for (const t of transactions) {
     if (t.branchId && t.branchId !== branchId) continue;  // skip rows from other branches
@@ -3460,10 +3468,11 @@ function parseExcelSalesFile(arrayBuffer) {
     const wk = toISO(monday);
     if (!weeklyMap.has(wk)) {
       weeklyMap.set(wk, { customers: new Set(), newSet: new Set(), retSet: new Set(),
-                         gross: 0, net: 0, txCount: 0 });
+                         gross: 0, promo: 0, net: 0, txCount: 0 });
     }
     const w = weeklyMap.get(wk);
     w.gross += t.gross;
+    w.promo += t.promo;
     w.net   += t.net;
     w.txCount += 1;
     if (t.custId) {
@@ -3479,7 +3488,7 @@ function parseExcelSalesFile(arrayBuffer) {
       txCount: w.txCount,
       gross: Math.round(w.gross),
       net: Math.round(w.net),
-      promo: Math.round(w.gross - w.net),
+      promo: Math.round(w.promo),
       customers: w.customers.size,
       newCust: w.newSet.size,
       returning: w.retSet.size
@@ -3537,7 +3546,7 @@ function showUploadError(filename, msg) {
   uploadBody.innerHTML = `
     <p style="color:var(--text-muted);font-size:13px;">${filename}</p>
     <div class="upload-error"><strong>Lỗi:</strong> ${msg}</div>
-    <p style="font-size:12.5px;color:var(--text-muted);margin-top:10px;">File phải là export "Bán hàng / Doanh số" với các cột: STT, MÃ ĐƠN HÀNG, CƠ SỞ, NGÀY, MÃ KHÁCH HÀNG, KHÁCH HÀNG, TỔNG TIỀN, TỔNG ĐÃ THANH TOÁN.</p>
+    <p style="font-size:12.5px;color:var(--text-muted);margin-top:10px;">File phải là export "Bán hàng / Doanh số" với các cột bắt buộc: <strong>STT, NGÀY, MÃ KHÁCH HÀNG, NGUYÊN GIÁ, TỔNG ĐÃ THANH TOÁN</strong> (và optional: CƠ SỞ, GIẢM / TĂNG GIÁ).</p>
     <div class="upload-actions"><button class="btn-cancel" onclick="document.getElementById('uploadModal').classList.remove('show')">Đóng</button></div>`;
 }
 
@@ -3569,25 +3578,25 @@ function showUploadPreview(filename, r) {
       <div class="upload-meta-item"><div class="label">Khoảng thời gian</div><div class="value" style="font-size:14px;">${r.fileStart} → ${r.fileEnd}</div></div>
       <div class="upload-meta-item"><div class="label">Tổng giao dịch</div><div class="value">${fmtNum(r.totalTx)}</div></div>
       <div class="upload-meta-item"><div class="label">Số tuần</div><div class="value">${r.weeks.length}</div></div>
-      <div class="upload-meta-item"><div class="label">Khách hàng (unique)</div><div class="value">${fmtNum(totalCust)}</div></div>
-      <div class="upload-meta-item"><div class="label">DT gộp</div><div class="value">${fmtVND(totalGross)}</div></div>
-      <div class="upload-meta-item"><div class="label">Giảm trừ KM</div><div class="value">${fmtVND(totalPromo)}</div></div>
-      <div class="upload-meta-item"><div class="label">DT thuần</div><div class="value">${fmtVND(totalNet)}</div></div>
+      <div class="upload-meta-item"><div class="label">Khách hàng (đếm theo Mã KH)</div><div class="value">${fmtNum(totalCust)}</div></div>
+      <div class="upload-meta-item"><div class="label">DT gộp (NGUYÊN GIÁ)</div><div class="value">${fmtVND(totalGross)}</div></div>
+      <div class="upload-meta-item"><div class="label">Giảm trừ KM (GIẢM/TĂNG GIÁ)</div><div class="value">${fmtVND(totalPromo)}</div></div>
+      <div class="upload-meta-item"><div class="label">DT thuần (TỔNG ĐÃ TT)</div><div class="value">${fmtVND(totalNet)}</div></div>
     </div>
     ${partialWarning}
-    <h4 style="font-size:13px;margin:14px 0 8px;">Chi tiết theo tuần (xếp theo ngày)</h4>
+    <h4 style="font-size:13px;margin:14px 0 8px;">Chi tiết theo tuần</h4>
     <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
       <table class="upload-week-table">
         <thead><tr>
-          <th>Tuần bắt đầu</th><th>Tx</th><th>KH unique</th><th>Mới</th><th>Cũ</th><th>DT gộp</th><th>KM</th><th>DT thuần</th>
+          <th>Tuần bắt đầu</th><th>Tx</th><th>Khách hàng</th><th>Mới</th><th>Cũ</th><th>DT gộp</th><th>KM</th><th>DT thuần</th>
         </tr></thead>
         <tbody>${r.weeks.map(w => `
           <tr class="${w.partial ? 'partial-week' : ''}">
             <td>${w.weekStart}${w.partial ? ' ⚠' : ''}</td>
             <td>${fmtNum(w.txCount)}</td>
-            <td>${fmtNum(w.customers)}</td>
-            <td>${fmtNum(w.newCust)}</td>
-            <td>${fmtNum(w.returning)}</td>
+            <td><strong>${fmtNum(w.customers)}</strong></td>
+            <td style="color:#22c55e;">${fmtNum(w.newCust)}</td>
+            <td style="color:#7c8aa3;">${fmtNum(w.returning)}</td>
             <td>${fmtVND(w.gross)}</td>
             <td>${fmtVND(w.promo)}</td>
             <td>${fmtVND(w.net)}</td>
@@ -3595,10 +3604,12 @@ function showUploadPreview(filename, r) {
         </tbody>
       </table>
     </div>
-    <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
-      <strong>Lưu ý:</strong> Khi bấm "Lưu", các tuần đã có sẵn cho cơ sở này sẽ bị <strong>ghi đè</strong>.
-      Khách "mới/cũ" tính theo lần đầu xuất hiện trong file này.
-    </p>
+    <div style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
+      <strong>📊 Cách đếm:</strong> Khách hàng = số lượng <strong>Mã KH unique</strong> trong tuần (1 khách đến nhiều lần = 1).
+      Mới = lần đầu xuất hiện trong file, Cũ = đã có lần xuất hiện trước trong file.<br>
+      <strong>⚠ Lưu ý:</strong> DT thuần có thể nhỏ hơn (DT gộp − KM) nếu khách dùng voucher — voucher KHÔNG tính vào "Giảm trừ KM" theo định nghĩa hiện tại.<br>
+      <strong>💾 Khi bấm "Lưu":</strong> các tuần đã có sẵn của cơ sở này sẽ bị <strong>ghi đè</strong>.
+    </div>
     <div class="upload-actions">
       <button class="btn-cancel" id="uploadCancelBtn">Huỷ</button>
       <button class="btn-confirm" id="uploadConfirmBtn">Lưu ${r.weeks.length} tuần</button>
