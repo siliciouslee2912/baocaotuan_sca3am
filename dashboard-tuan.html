@@ -4,15 +4,16 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.02" />
+<meta name="version" content="v2026.05.05.03" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 hash-state-persistence -->
+<!-- BUILD: 2026-05-05 excel-upload -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
@@ -357,6 +358,33 @@
   .ktv-services-list li { padding: 6px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; font-size: 13px; }
   .ktv-services-list li:last-child { border-bottom: none; }
   .modal-close-x { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); float: right; line-height: 1; padding: 0; }
+
+  /* ===== UPLOAD EXCEL ===== */
+  .upload-btn { background: var(--primary); color: #fff; border: none; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 6px; }
+  .upload-btn:hover { filter: brightness(0.95); }
+  .upload-btn svg { width: 14px; height: 14px; }
+  .upload-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .upload-modal.show { display: flex; }
+  .upload-modal-box { background: var(--card); border-radius: 14px; max-width: 920px; width: 100%; max-height: 92vh; overflow-y: auto; padding: 24px 26px; }
+  .upload-modal-box h3 { margin-bottom: 12px; }
+  .upload-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px; margin: 14px 0 18px; }
+  .upload-meta-item { background: var(--bg); padding: 11px 13px; border-radius: 9px; }
+  .upload-meta-item .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .upload-meta-item .value { font-size: 17px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .upload-meta-item select { font-size: 14px; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; font-family: inherit; width: 100%; }
+  .upload-week-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .upload-week-table th, .upload-week-table td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border); }
+  .upload-week-table th:first-child, .upload-week-table td:first-child { text-align: left; }
+  .upload-week-table th { background: var(--bg); font-weight: 600; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .upload-week-table tr.partial-week { background: #fffbeb; }
+  .upload-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .upload-actions button { padding: 10px 18px; border-radius: 9px; font-size: 13.5px; font-weight: 600; cursor: pointer; font-family: inherit; border: none; }
+  .upload-actions .btn-cancel { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .upload-actions .btn-confirm { background: #22c55e; color: #fff; }
+  .upload-actions .btn-confirm:disabled { background: #94a3b8; cursor: not-allowed; }
+  .upload-warning { background: #fef3c7; border-left: 3px solid #f59e0b; padding: 10px 14px; margin: 12px 0; font-size: 13px; color: #92400e; border-radius: 6px; }
+  .upload-error { background: #fee2e2; border-left: 3px solid #ef4444; padding: 10px 14px; margin: 12px 0; font-size: 13px; color: #991b1b; border-radius: 6px; }
+  .upload-success { background: #dcfce7; border-left: 3px solid #22c55e; padding: 10px 14px; margin: 12px 0; font-size: 13px; color: #166534; border-radius: 6px; }
 </style>
 </head>
 <body>
@@ -385,6 +413,11 @@
       Báo cáo
       <small>Theo tuần</small>
     </div>
+    <div class="nav-item" data-mode="reconcile">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h13M16 6l-3-3M16 6l-3 3M21 18H8M8 18l3-3M8 18l3 3"/></svg>
+      Đối chiếu
+      <small>Tuần ↔ Tháng</small>
+    </div>
     <div class="nav-item" data-mode="staff">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
       Hiệu suất KTV
@@ -410,6 +443,11 @@
           <div class="user-info"><strong>ADMIN SYSTEM</strong><span>3AM D'SPA &amp; SCA</span></div>
         </div>
         <div class="sync-indicator" id="syncIndicator" title="Trạng thái đồng bộ Firebase"><span class="dot"></span><span id="syncText">Đã đồng bộ</span></div>
+        <button class="upload-btn" id="uploadBtn" title="Nhập file Excel doanh số">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Nhập Excel
+        </button>
+        <input type="file" id="uploadFileInput" accept=".xlsx,.xls" style="display:none" />
         <button class="logout-btn" id="logoutBtn" title="Đăng xuất khỏi dashboard">Đăng xuất</button>
       </div>
     </header>
@@ -506,6 +544,26 @@
       </section>
       </div><!-- /#defaultView -->
 
+      <!-- ============== RECONCILE VIEW (Đối chiếu Tuần ↔ Tháng) ============== -->
+      <div id="reconcileView" class="ktv-view">
+        <div class="pnl-controls">
+          <span class="branch-bar-label">Cơ sở:</span>
+          <div class="pnl-branches-tabs" id="reconcileBranchTabs"></div>
+        </div>
+        <section class="pnl-summary-grid" id="reconcileSummary"></section>
+        <section class="card">
+          <div class="card-head">
+            <h3>Bảng đối chiếu doanh thu thuần · Weekly ↔ P&amp;L</h3>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+              Σ Weekly = tổng các tuần có Monday rơi vào tháng đó. P&amp;L = số kế toán. Tuần ghép tháng (Monday cuối tháng → tuần sang tháng sau) tính cho tháng của Monday.
+            </p>
+          </div>
+          <div class="card-body" style="padding:6px 16px 16px;overflow-x:auto;">
+            <table class="ktv-table" id="reconcileTable"></table>
+          </div>
+        </section>
+      </div>
+
       <!-- ============== KTV VIEW (Hiệu suất nhân viên) ============== -->
       <div id="ktvView" class="ktv-view">
         <div class="pnl-controls">
@@ -535,6 +593,15 @@
       <!-- KTV Detail Modal -->
       <div class="ktv-detail-modal" id="ktvDetailModal">
         <div class="ktv-detail-box" id="ktvDetailContent"></div>
+      </div>
+
+      <!-- Upload Excel Preview Modal -->
+      <div class="upload-modal" id="uploadModal">
+        <div class="upload-modal-box" id="uploadModalContent">
+          <button class="modal-close-x" id="uploadModalClose" style="float:right">×</button>
+          <h3>📤 Nhập file Excel doanh số</h3>
+          <div id="uploadModalBody"></div>
+        </div>
       </div>
     </main>
   </div>
@@ -3286,6 +3353,294 @@ function loadStateFromHash() {
 window.addEventListener('hashchange', () => {
   if (loadStateFromHash()) renderAll();
 });
+
+/* ==========================================================
+   EXCEL UPLOAD — parse sales transactions Excel file
+========================================================== */
+
+// Detect branch ID from CƠ SỞ column value
+function detectBranchFromCoSo(s) {
+  if (!s) return null;
+  const lower = s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');  // strip Vietnamese diacritics
+  if (lower.includes('tran xuan soan')) return 'tx-soan';
+  if (lower.includes('quan hoa'))        return 'quan-hoa';
+  if (lower.includes('ha dong'))         return 'ha-dong';
+  return null;
+}
+
+// Parse "HH:MM DD/MM/YYYY" → Date object
+function parseTransactionDate(s) {
+  const m = String(s).trim().match(/^(\d{1,2}):(\d{2})\s+(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  return new Date(+m[5], +m[4] - 1, +m[3], +m[1], +m[2]);
+}
+
+// Find header row in raw array-of-arrays (row that contains "STT" + "NGÀY")
+function findHeaderRow(rows) {
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    const r = rows[i] || [];
+    const txt = r.map(c => String(c || '').toUpperCase()).join('|');
+    if (txt.includes('STT') && txt.includes('NGÀY') && txt.includes('KHÁCH HÀNG')) return i;
+  }
+  return -1;
+}
+
+// Map header labels to column indices (handles slight variations)
+function buildColMap(headerRow) {
+  const map = {};
+  headerRow.forEach((h, i) => {
+    const norm = String(h || '').trim().toUpperCase();
+    if (norm === 'CƠ SỞ') map.coSo = i;
+    if (norm === 'NGÀY') map.date = i;
+    if (norm === 'MÃ KHÁCH HÀNG') map.custId = i;
+    if (norm === 'KHÁCH HÀNG') map.custName = i;
+    if (norm === 'TỔNG TIỀN') map.gross = i;
+    if (norm === 'TỔNG ĐÃ THANH TOÁN') map.net = i;
+    if (norm === 'NGUYÊN GIÁ') map.original = i;
+  });
+  return map;
+}
+
+function mondayOfDate(d) {
+  const r = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = r.getDay() === 0 ? 7 : r.getDay();  // Sun=0→7
+  r.setDate(r.getDate() - (day - 1));
+  return r;
+}
+function toISO(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// Main parser: takes ArrayBuffer, returns structured parse result
+function parseExcelSalesFile(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array' });
+  const sheet = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+  const hdrIdx = findHeaderRow(rows);
+  if (hdrIdx < 0) throw new Error('Không tìm thấy header (STT, NGÀY, KHÁCH HÀNG) trong file.');
+
+  const col = buildColMap(rows[hdrIdx]);
+  if (col.date === undefined || col.net === undefined || col.gross === undefined) {
+    throw new Error('Thiếu cột bắt buộc: NGÀY, TỔNG TIỀN, TỔNG ĐÃ THANH TOÁN.');
+  }
+
+  const transactions = [];
+  const branchCounts = {};  // count txns per branch (in case file has multiple)
+  for (let i = hdrIdx + 1; i < rows.length; i++) {
+    const r = rows[i] || [];
+    const dt = parseTransactionDate(r[col.date]);
+    if (!dt) continue;
+    const coSo = col.coSo !== undefined ? String(r[col.coSo] || '').trim() : '';
+    const branchId = detectBranchFromCoSo(coSo);
+    if (branchId) branchCounts[branchId] = (branchCounts[branchId] || 0) + 1;
+    const gross = Number(r[col.gross]) || 0;
+    const net   = Number(r[col.net])   || 0;
+    const custId = String(r[col.custId] || '').trim();
+    transactions.push({ dt, branchId, coSo, gross, net, custId });
+  }
+  if (transactions.length === 0) throw new Error('Không tìm thấy giao dịch hợp lệ trong file.');
+
+  // Pick branch with most rows (dominant)
+  const branchId = Object.entries(branchCounts).sort((a,b) => b[1] - a[1])[0]?.[0] || null;
+  if (!branchId) throw new Error('Không xác định được cơ sở từ cột "CƠ SỞ".');
+
+  // Sort by datetime
+  transactions.sort((a,b) => a.dt - b.dt);
+  const dateMin = transactions[0].dt;
+  const dateMax = transactions[transactions.length - 1].dt;
+
+  // Group by Monday-week, computing within-file new vs returning
+  const weeklyMap = new Map();  // weekStart ISO → {customers Set, newSet, retSet, gross, net, txCount}
+  const seenCusts = new Set();
+  for (const t of transactions) {
+    if (t.branchId && t.branchId !== branchId) continue;  // skip rows from other branches
+    const monday = mondayOfDate(t.dt);
+    const wk = toISO(monday);
+    if (!weeklyMap.has(wk)) {
+      weeklyMap.set(wk, { customers: new Set(), newSet: new Set(), retSet: new Set(),
+                         gross: 0, net: 0, txCount: 0 });
+    }
+    const w = weeklyMap.get(wk);
+    w.gross += t.gross;
+    w.net   += t.net;
+    w.txCount += 1;
+    if (t.custId) {
+      w.customers.add(t.custId);
+      if (seenCusts.has(t.custId)) w.retSet.add(t.custId);
+      else { w.newSet.add(t.custId); seenCusts.add(t.custId); }
+    }
+  }
+
+  const weeks = [...weeklyMap.entries()]
+    .map(([wk, w]) => ({
+      weekStart: wk,
+      txCount: w.txCount,
+      gross: Math.round(w.gross),
+      net: Math.round(w.net),
+      promo: Math.round(w.gross - w.net),
+      customers: w.customers.size,
+      newCust: w.newSet.size,
+      returning: w.retSet.size
+    }))
+    .sort((a,b) => a.weekStart.localeCompare(b.weekStart));
+
+  // Detect partial weeks (where week extends beyond file's date range)
+  const fileStart = toISO(dateMin);
+  const fileEnd = toISO(dateMax);
+  weeks.forEach(w => {
+    const monday = new Date(w.weekStart);
+    const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+    const sundayISO = toISO(sunday);
+    // Partial if Monday is before fileStart or Sunday is after fileEnd
+    w.partial = (w.weekStart < fileStart) || (sundayISO > fileEnd);
+  });
+
+  return { branchId, fileStart, fileEnd, totalTx: transactions.length, weeks };
+}
+
+/* ----- Upload UI flow ----- */
+const uploadModal = document.getElementById('uploadModal');
+const uploadBody = document.getElementById('uploadModalBody');
+const uploadFileInput = document.getElementById('uploadFileInput');
+
+document.getElementById('uploadBtn').onclick = () => uploadFileInput.click();
+document.getElementById('uploadModalClose').onclick = () => uploadModal.classList.remove('show');
+uploadModal.onclick = (e) => { if (e.target === uploadModal) uploadModal.classList.remove('show'); };
+
+let _currentParse = null;  // hold latest parse result for confirm step
+
+uploadFileInput.onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  uploadFileInput.value = '';  // allow re-uploading same file later
+
+  showUploadModalLoading(file.name);
+  try {
+    const buf = await file.arrayBuffer();
+    const result = parseExcelSalesFile(buf);
+    _currentParse = result;
+    showUploadPreview(file.name, result);
+  } catch (err) {
+    showUploadError(file.name, err.message || String(err));
+  }
+};
+
+function showUploadModalLoading(filename) {
+  uploadBody.innerHTML = `
+    <p style="color:var(--text-muted);font-size:13px;">${filename}</p>
+    <p style="margin-top:14px;">⏳ Đang đọc file...</p>`;
+  uploadModal.classList.add('show');
+}
+function showUploadError(filename, msg) {
+  uploadBody.innerHTML = `
+    <p style="color:var(--text-muted);font-size:13px;">${filename}</p>
+    <div class="upload-error"><strong>Lỗi:</strong> ${msg}</div>
+    <p style="font-size:12.5px;color:var(--text-muted);margin-top:10px;">File phải là export "Bán hàng / Doanh số" với các cột: STT, MÃ ĐƠN HÀNG, CƠ SỞ, NGÀY, MÃ KHÁCH HÀNG, KHÁCH HÀNG, TỔNG TIỀN, TỔNG ĐÃ THANH TOÁN.</p>
+    <div class="upload-actions"><button class="btn-cancel" onclick="document.getElementById('uploadModal').classList.remove('show')">Đóng</button></div>`;
+}
+
+function showUploadPreview(filename, r) {
+  const totalGross = r.weeks.reduce((a,w)=>a+w.gross, 0);
+  const totalNet   = r.weeks.reduce((a,w)=>a+w.net, 0);
+  const totalPromo = r.weeks.reduce((a,w)=>a+w.promo, 0);
+  const totalCust  = r.weeks.reduce((a,w)=>a+w.customers, 0);
+  const branchOpts = ['tx-soan','quan-hoa','ha-dong'].map(bid => {
+    const b = getBranch(bid);
+    const sel = bid === r.branchId ? 'selected' : '';
+    return `<option value="${bid}" ${sel}>${b ? b.name.replace("3AM D'SPA · ", "") : bid}</option>`;
+  }).join('');
+
+  const partialCount = r.weeks.filter(w => w.partial).length;
+  const partialWarning = partialCount > 0 ? `
+    <div class="upload-warning">
+      ⚠️ <strong>${partialCount} tuần</strong> không nằm trọn trong file (có ngày Monday hoặc Sunday vượt khỏi khoảng ${r.fileStart} → ${r.fileEnd}).
+      Số liệu các tuần này sẽ bị thiếu — nên upload thêm file tháng kế cận để bổ sung.
+    </div>` : '';
+
+  uploadBody.innerHTML = `
+    <p style="color:var(--text-muted);font-size:13px;">${filename}</p>
+    <div class="upload-meta">
+      <div class="upload-meta-item">
+        <div class="label">Cơ sở phát hiện</div>
+        <select id="uploadBranchSelect">${branchOpts}</select>
+      </div>
+      <div class="upload-meta-item"><div class="label">Khoảng thời gian</div><div class="value" style="font-size:14px;">${r.fileStart} → ${r.fileEnd}</div></div>
+      <div class="upload-meta-item"><div class="label">Tổng giao dịch</div><div class="value">${fmtNum(r.totalTx)}</div></div>
+      <div class="upload-meta-item"><div class="label">Số tuần</div><div class="value">${r.weeks.length}</div></div>
+      <div class="upload-meta-item"><div class="label">Khách hàng (unique)</div><div class="value">${fmtNum(totalCust)}</div></div>
+      <div class="upload-meta-item"><div class="label">DT gộp</div><div class="value">${fmtVND(totalGross)}</div></div>
+      <div class="upload-meta-item"><div class="label">Giảm trừ KM</div><div class="value">${fmtVND(totalPromo)}</div></div>
+      <div class="upload-meta-item"><div class="label">DT thuần</div><div class="value">${fmtVND(totalNet)}</div></div>
+    </div>
+    ${partialWarning}
+    <h4 style="font-size:13px;margin:14px 0 8px;">Chi tiết theo tuần (xếp theo ngày)</h4>
+    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+      <table class="upload-week-table">
+        <thead><tr>
+          <th>Tuần bắt đầu</th><th>Tx</th><th>KH unique</th><th>Mới</th><th>Cũ</th><th>DT gộp</th><th>KM</th><th>DT thuần</th>
+        </tr></thead>
+        <tbody>${r.weeks.map(w => `
+          <tr class="${w.partial ? 'partial-week' : ''}">
+            <td>${w.weekStart}${w.partial ? ' ⚠' : ''}</td>
+            <td>${fmtNum(w.txCount)}</td>
+            <td>${fmtNum(w.customers)}</td>
+            <td>${fmtNum(w.newCust)}</td>
+            <td>${fmtNum(w.returning)}</td>
+            <td>${fmtVND(w.gross)}</td>
+            <td>${fmtVND(w.promo)}</td>
+            <td>${fmtVND(w.net)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
+      <strong>Lưu ý:</strong> Khi bấm "Lưu", các tuần đã có sẵn cho cơ sở này sẽ bị <strong>ghi đè</strong>.
+      Khách "mới/cũ" tính theo lần đầu xuất hiện trong file này.
+    </p>
+    <div class="upload-actions">
+      <button class="btn-cancel" id="uploadCancelBtn">Huỷ</button>
+      <button class="btn-confirm" id="uploadConfirmBtn">Lưu ${r.weeks.length} tuần</button>
+    </div>`;
+
+  document.getElementById('uploadCancelBtn').onclick = () => uploadModal.classList.remove('show');
+  document.getElementById('uploadConfirmBtn').onclick = () => confirmUpload();
+}
+
+function confirmUpload() {
+  if (!_currentParse) return;
+  // Allow user to override branch
+  const chosenBranch = document.getElementById('uploadBranchSelect').value;
+  const r = _currentParse;
+  // Build new entries
+  const newEntries = r.weeks.map(w => ({
+    branchId: chosenBranch,
+    weekStart: w.weekStart,
+    newCustTotal: w.newCust,
+    returning: w.returning,
+    sources: {},
+    revenue: { service: w.gross, product: 0 },
+    promotions: { service: w.promo, product: 0 }
+  }));
+  // Remove existing entries for this branch + these week starts
+  const weekSet = new Set(r.weeks.map(w => w.weekStart));
+  DATA.entries = DATA.entries.filter(e => !(e.branchId === chosenBranch && weekSet.has(e.weekStart)));
+  // Append new entries
+  DATA.entries.push(...newEntries);
+  // Save → localStorage + Firestore (saveData was overridden earlier)
+  saveData(DATA);
+  // Done — show success
+  uploadBody.innerHTML = `
+    <div class="upload-success">
+      ✅ Đã lưu thành công <strong>${r.weeks.length} tuần</strong> cho cơ sở <strong>${getBranch(chosenBranch).name.replace("3AM D'SPA · ", "")}</strong>.
+    </div>
+    <p style="color:var(--text-muted);font-size:13px;">Dashboard sẽ tự cập nhật. Khoảng thời gian filter có thể đã thay đổi.</p>
+    <div class="upload-actions">
+      <button class="btn-confirm" onclick="document.getElementById('uploadModal').classList.remove('show'); renderAll();">Đóng</button>
+    </div>`;
+  _currentParse = null;
+}
 
 // Wire up login button
 document.getElementById('loginBtn').addEventListener('click', async () => {
