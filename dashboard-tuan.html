@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.06" />
+<meta name="version" content="v2026.05.05.07" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 iso-week-month -->
+<!-- BUILD: 2026-05-05 dedupe-entries -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3325,6 +3325,17 @@ async function loadDataAndRender() {
   data.pnl = PNL_DATA;
   data.ktv = KTV_DATA;
 
+  // Defensive dedup on every load — protects against duplicates from
+  // mid-upload failures, schema migrations, or browser cache quirks.
+  if (Array.isArray(data.entries)) {
+    const before = data.entries.length;
+    data.entries = dedupeEntries(data.entries);
+    const removed = before - data.entries.length;
+    if (removed > 0) {
+      console.warn(`[Dashboard] Đã gộp ${removed} entry duplicate (cùng cơ sở + cùng tuần). Total entries: ${before} → ${data.entries.length}`);
+    }
+  }
+
   // Replace global DATA
   Object.keys(DATA).forEach(k => delete DATA[k]);
   Object.assign(DATA, data);
@@ -3390,6 +3401,42 @@ window.addEventListener('hashchange', () => {
 /* ==========================================================
    EXCEL UPLOAD — parse sales transactions Excel file
 ========================================================== */
+
+// Defensive dedup: collapse duplicate entries (same branchId + same weekStart).
+// Keeps the entry with the largest "data signal" (prefers entries that have
+// 'orders' set, then highest revenue.service, then most recent). Useful when
+// uploads partially succeeded or seed data wasn't fully overwritten.
+function dedupeEntries(entries) {
+  const byKey = new Map();
+  entries.forEach(e => {
+    const k = e.branchId + '|' + e.weekStart;
+    const existing = byKey.get(k);
+    if (!existing) { byKey.set(k, e); return; }
+    // Pick the one with more signal
+    const eScore = (e.orders > 0 ? 1e9 : 0) + (e.revenue?.service || 0);
+    const xScore = (existing.orders > 0 ? 1e9 : 0) + (existing.revenue?.service || 0);
+    if (eScore > xScore) byKey.set(k, e);
+  });
+  return [...byKey.values()];
+}
+
+// Diagnostic: report on duplicates. Returns count of dups removed.
+function dedupeReport(entries, branchId) {
+  const seen = new Map();
+  const dups = [];
+  entries.forEach(e => {
+    if (branchId && e.branchId !== branchId) return;
+    const k = e.branchId + '|' + e.weekStart;
+    if (seen.has(k)) {
+      dups.push({ key: k, prev: seen.get(k), curr: e });
+    } else {
+      seen.set(k, e);
+    }
+  });
+  return dups;
+}
+window.dedupeReport = dedupeReport;  // expose for console debugging
+window.dedupeEntries = dedupeEntries;
 
 // Detect branch ID from CƠ SỞ column value
 function detectBranchFromCoSo(s) {
@@ -3673,6 +3720,8 @@ function confirmUpload() {
   DATA.entries = DATA.entries.filter(e => !(e.branchId === chosenBranch && weekSet.has(e.weekStart)));
   // Append new entries
   DATA.entries.push(...newEntries);
+  // Defensive dedup as final safety net
+  DATA.entries = dedupeEntries(DATA.entries);
   // Save → localStorage + Firestore (saveData was overridden earlier)
   saveData(DATA);
   // Done — show success
