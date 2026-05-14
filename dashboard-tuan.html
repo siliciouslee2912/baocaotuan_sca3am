@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.08" />
+<meta name="version" content="v2026.05.05.09" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 explicit-entry-month -->
+<!-- BUILD: 2026-05-05 per-week-iso-month -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3712,29 +3712,25 @@ function confirmUpload() {
   const chosenBranch = document.getElementById('uploadBranchSelect').value;
   const r = _currentParse;
 
-  // Compute primary calendar month of the file's date range (month with most days).
-  // This is the month each transaction "belongs to" semantically — so a 01/04→30/04
-  // file's all 5 weeks (even those whose Monday is Mar 30) get attributed to April.
-  function primaryMonthOfRange(fromISO, toISO) {
-    const counts = {};
-    const cur = new Date(fromISO), end = new Date(toISO);
-    while (cur <= end) {
-      const m = cur.getFullYear() + '-' + String(cur.getMonth()+1).padStart(2,'0');
-      counts[m] = (counts[m] || 0) + 1;
-      cur.setDate(cur.getDate() + 1);
-    }
-    return Object.entries(counts).sort((a,b) => b[1] - a[1])[0]?.[0] || null;
+  // Per-week month attribution (ISO 8601 Thursday rule):
+  // Each week is assigned to the calendar month containing its Thursday — i.e. the
+  // month containing ≥4 of the 7 days. This handles BOTH single-month and multi-month
+  // files correctly. Single-month files put all 5 weeks (including boundary ones)
+  // into their month; multi-month files distribute weeks naturally.
+  function weekISOMonth(mondayISO) {
+    const d = new Date(mondayISO);
+    d.setDate(d.getDate() + 3);  // Thursday
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
   }
-  const primaryMonth = primaryMonthOfRange(r.fileStart, r.fileEnd);
 
-  // Build new entries
+  // Build new entries — each gets its own month based on its week's Thursday
   const newEntries = r.weeks.map(w => ({
     branchId: chosenBranch,
     weekStart: w.weekStart,
     newCustTotal: w.newCust,
     returning: w.returning,
     orders: w.txCount,
-    month: primaryMonth,  // explicit month attribution
+    month: weekISOMonth(w.weekStart),
     sources: {},
     revenue: { service: w.gross, product: 0 },
     promotions: { service: w.promo, product: 0 }
