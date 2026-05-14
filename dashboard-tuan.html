@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.04" />
+<meta name="version" content="v2026.05.05.05" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 column-remap -->
+<!-- BUILD: 2026-05-05 orders-metric -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -498,7 +498,8 @@
           <div class="metric-toggle" data-mode="promo" title="Tổng giảm trừ khuyến mãi">Giảm trừ KM</div>
           <div class="metric-toggle weekly-hidden" data-mode="profit" title="Lợi nhuận = Doanh thu − Chi phí (từ P&amp;L)">Lợi nhuận</div>
           <div class="metric-toggle weekly-hidden" data-mode="cost" title="Tổng chi phí từ báo cáo P&amp;L">Chi phí</div>
-          <div class="metric-toggle" data-mode="customers" title="Số khách hàng (mới + cũ)">Khách hàng</div>
+          <div class="metric-toggle" data-mode="customers" title="Số khách hàng (đếm theo Mã KH unique)">Khách hàng</div>
+          <div class="metric-toggle" data-mode="orders" title="Số đơn = số giao dịch / lần dùng dịch vụ">Số đơn</div>
         </div>
       </div>
 
@@ -1247,7 +1248,7 @@ window.resetData = function(){
 let activeMode = 'monthly';     // 'monthly' | 'weekly'
 let activeBranch = 'all';
 let activeView = 'overview';    // 'overview' | 'customers' | 'service' | 'product' | 'courses' | 'leads' | 'students' | 'conversion'
-let revenueMode = 'net';        // 'net' | 'gross' | 'promo' | 'profit' | 'cost' | 'customers' — main chart metric
+let revenueMode = 'net';        // 'net' | 'gross' | 'promo' | 'profit' | 'cost' | 'customers' | 'orders' — main chart metric
 let dateRange = defaultDateRange(activeMode);  // weekly = last 10 weeks, monthly = last 12 months
 let metricToggles = { leads: true, customers: true, courses: true, revenue: true };  // for SCA dashboard
 let studentCourseToggles = { leads: true, customers: true, courses: true };  // for SCA leads/students/courses chart
@@ -1294,7 +1295,8 @@ function aggregateByPeriod(branchId, mode){
         totalCust: 0,
         totalNewCust: 0,
         totalLeads: 0,
-        totalCourses: 0
+        totalCourses: 0,
+        totalOrders: 0
       });
     }
     const p = map.get(key);
@@ -1334,6 +1336,8 @@ function aggregateByPeriod(branchId, mode){
       p.totalLeads = p.leadsTotal;
     }
     p.totalCourses = COURSES.reduce((acc,c)=> acc + p.courses[c.id].count, 0);
+    // Sum orders (transactions) — present only on entries imported from Excel
+    p.totalOrders += (e.orders || 0);
   });
   let result = Array.from(map.values()).sort((a,b)=> a.key.localeCompare(b.key));
 
@@ -1348,7 +1352,7 @@ function aggregateByPeriod(branchId, mode){
       revenue: { service: 0, product: 0, courses: 0 },
       promotions: { service: 0, product: 0, courses: 0 },
       returning: 0, newCustTotal: 0, leadsTotal: 0, studentTotal: 0,
-      totalCust: 0, totalNewCust: 0, totalLeads: 0, totalCourses: 0
+      totalCust: 0, totalNewCust: 0, totalLeads: 0, totalCourses: 0, totalOrders: 0
     };
   }
 
@@ -1730,31 +1734,29 @@ function netRevenueOfPeriod(p){
   return Math.max(0, sv) + Math.max(0, pr) + Math.max(0, co);
 }
 
-// Build profit/cost/customer values per period entry
-// Returns array of { revenue, cost, profit, customers } aligned with periods
+// Build profit/cost/customer/order values per period entry
+// Returns array of { revenue, cost, profit, customers, orders } aligned with periods
 function buildSpecialMetrics(periods, branchId){
   return periods.map(p => {
     const customers = p.totalCust || 0;
+    const orders    = p.totalOrders || 0;
     const netRev = netRevenueOfPeriod(p);
     let cost = 0, profit = 0, isFromPnl = false;
     if (activeMode === 'monthly') {
       const monthly = pnlForMonth(branchId, p.key);
       if (monthly) {
-        // Use P&L numbers directly when available (monthly mode = source of truth)
         cost = monthly.cost;
         profit = monthly.profit;
         isFromPnl = true;
       } else {
-        // Outside P&L range: estimate by cost ratio
         const w = pnlForWeek(branchId, p.key + '-01', netRev);
         if (w) { cost = w.cost; profit = w.profit; }
       }
     } else {
-      // Weekly: allocate from monthly cost ratio
       const w = pnlForWeek(branchId, p.key, netRev);
       if (w) { cost = w.cost; profit = w.profit; }
     }
-    return { revenue: netRev, cost, profit, customers, isFromPnl };
+    return { revenue: netRev, cost, profit, customers, orders, isFromPnl };
   });
 }
 
@@ -1796,7 +1798,7 @@ function renderSpecialMetricChart(ctx, periods, labels, makeGrad){
       ? 'Tổng chi phí từ báo cáo P&L (đơn vị: triệu đồng)'
       : 'Phân bổ chi phí tháng cho các tuần theo tỉ lệ doanh thu (đơn vị: triệu đồng)';
     yLabel = 'tr';
-  } else { // customers
+  } else if (revenueMode === 'customers') {
     color = '#10b981';
     datasets = [{
       label: 'Số khách hàng',
@@ -1811,6 +1813,21 @@ function renderSpecialMetricChart(ctx, periods, labels, makeGrad){
     yLabel = '';
     isCurrency = false;
     isCustomers = true;
+  } else { // orders
+    color = '#8b5cf6';
+    datasets = [{
+      label: 'Số đơn',
+      data: metrics.map(m => m.orders),
+      borderColor: color,
+      backgroundColor: makeGrad('rgba(139,92,246,.30)','rgba(139,92,246,0)'),
+      borderWidth: 2.5, tension: 0.4, fill: true,
+      pointBackgroundColor: '#fff', pointBorderColor: color, pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
+    }];
+    title = 'Số đơn theo ' + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    subtitle = 'Số giao dịch / lần dùng dịch vụ (1 khách có thể nhiều đơn)';
+    yLabel = '';
+    isCurrency = false;
+    isCustomers = true;  // reuse the "non-currency" formatting branch
   }
 
   mainChart = new Chart(ctx, {
@@ -1825,7 +1842,10 @@ function renderSpecialMetricChart(ctx, periods, labels, makeGrad){
           backgroundColor: '#1a2238', titleColor: '#fff', bodyColor: '#cdd5e3', padding: 12, cornerRadius: 8, displayColors: true,
           callbacks: {
             label: (c) => {
-              if (isCustomers) return c.dataset.label + ': ' + fmtNum(c.parsed.y) + ' khách';
+              if (isCustomers) {
+                const unit = (revenueMode === 'orders') ? ' đơn' : ' khách';
+                return c.dataset.label + ': ' + fmtNum(c.parsed.y) + unit;
+              }
               return c.dataset.label + ': ' + c.parsed.y.toFixed(1) + ' tr';
             }
           }
@@ -1889,7 +1909,7 @@ function renderMainChart(){
   // overrides the per-view (overview/service/product/courses/etc.)
   // logic below. Renders directly here and returns.
   // ============================================================
-  if (revenueMode === 'profit' || revenueMode === 'cost' || revenueMode === 'customers') {
+  if (revenueMode === 'profit' || revenueMode === 'cost' || revenueMode === 'customers' || revenueMode === 'orders') {
     return renderSpecialMetricChart(ctx, periods, labels, makeGrad);
   }
 
@@ -2448,6 +2468,7 @@ function renderTable(){
         <td><span class="week-pill">${weekLabel(e.weekStart)}</span></td>
         <td><span class="branch-tag" style="background:${b.color}18;color:${b.color};"><span class="dot" style="background:${b.color}"></span>${b.name}</span></td>
         <td class="num strong">${fmtNum(totalCust)}</td>
+        <td class="num strong" style="color:#8b5cf6;">${e.orders ? fmtNum(e.orders) : '—'}</td>
         ${detailCol}
         <td class="num strong">${fmtVND(totalRev)}</td>
         <td>
@@ -2484,6 +2505,7 @@ function renderTable(){
             <th>Tuần</th>
             <th>Cơ sở</th>
             <th style="text-align:right;">Khách</th>
+            <th style="text-align:right;">Số đơn</th>
             ${colHeaders}
             <th style="text-align:right;">Tổng DT</th>
             <th></th>
@@ -3308,7 +3330,7 @@ async function loadDataAndRender() {
 ========================================================== */
 const VALID_MODES = ['monthly', 'weekly', 'staff'];
 const VALID_VIEWS = ['overview', 'customers', 'service', 'product', 'courses', 'leads', 'students', 'conversion'];
-const VALID_METRICS = ['net', 'gross', 'promo', 'profit', 'cost', 'customers'];
+const VALID_METRICS = ['net', 'gross', 'promo', 'profit', 'cost', 'customers', 'orders'];
 
 function getStateHash() {
   const params = new URLSearchParams();
@@ -3630,6 +3652,7 @@ function confirmUpload() {
     weekStart: w.weekStart,
     newCustTotal: w.newCust,
     returning: w.returning,
+    orders: w.txCount,
     sources: {},
     revenue: { service: w.gross, product: 0 },
     promotions: { service: w.promo, product: 0 }
