@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.07" />
+<meta name="version" content="v2026.05.05.08" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 dedupe-entries -->
+<!-- BUILD: 2026-05-05 explicit-entry-month -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1286,10 +1286,16 @@ function getEntries(branchId){
 
 function aggregateByPeriod(branchId, mode){
   const map = new Map();
-  const getKey = (weekStart) => mode === 'monthly' ? weekMonthKey(weekStart) : weekStart;
+  // For monthly mode: prefer the entry's explicit `month` field (set during Excel upload
+  // based on the file's date range), fall back to Monday's calendar month for legacy
+  // entries without explicit attribution. This preserves backward compatibility for
+  // seed data while letting uploads put their data in the correct calendar month
+  // (so a "01/04 - 30/04" file's 1301 transactions all count in April, including the
+  // straddling Mon-Mar-30 week whose transactions are actually April 1-5).
+  const getKey = (e) => mode === 'monthly' ? (e.month || monthKey(e.weekStart)) : e.weekStart;
   const getLabel = (key) => mode === 'monthly' ? monthLabel(key) : weekLabel(key);
   getEntries(branchId).forEach(e => {
-    const key = getKey(e.weekStart);
+    const key = getKey(e);
     if (!map.has(key)) {
       map.set(key, {
         key, label: getLabel(key),
@@ -1723,8 +1729,9 @@ function pnlAvgCostRatio(branchId, n){
 // Allocate weekly cost/profit proportionally based on monthly cost ratio
 // weekStart: 'YYYY-MM-DD', netRevenue: number — returns {cost, profit} or null
 function pnlForWeek(branchId, weekStartISO, netRevenue){
-  // Use ISO 8601 week-to-month: lookup P&L by the month of this week's Thursday
-  const m = weekMonthKey(weekStartISO);
+  // Find this entry's explicit month attribution if present, else fall back to calendar month of Monday
+  const entry = DATA.entries.find(e => e.branchId === branchId && e.weekStart === weekStartISO);
+  const m = entry?.month || monthKey(weekStartISO);
   let monthly = pnlForMonth(branchId, m);
   let ratio = null;
   if (monthly && monthly.revenue > 0) {
@@ -3704,6 +3711,22 @@ function confirmUpload() {
   // Allow user to override branch
   const chosenBranch = document.getElementById('uploadBranchSelect').value;
   const r = _currentParse;
+
+  // Compute primary calendar month of the file's date range (month with most days).
+  // This is the month each transaction "belongs to" semantically — so a 01/04→30/04
+  // file's all 5 weeks (even those whose Monday is Mar 30) get attributed to April.
+  function primaryMonthOfRange(fromISO, toISO) {
+    const counts = {};
+    const cur = new Date(fromISO), end = new Date(toISO);
+    while (cur <= end) {
+      const m = cur.getFullYear() + '-' + String(cur.getMonth()+1).padStart(2,'0');
+      counts[m] = (counts[m] || 0) + 1;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return Object.entries(counts).sort((a,b) => b[1] - a[1])[0]?.[0] || null;
+  }
+  const primaryMonth = primaryMonthOfRange(r.fileStart, r.fileEnd);
+
   // Build new entries
   const newEntries = r.weeks.map(w => ({
     branchId: chosenBranch,
@@ -3711,6 +3734,7 @@ function confirmUpload() {
     newCustTotal: w.newCust,
     returning: w.returning,
     orders: w.txCount,
+    month: primaryMonth,  // explicit month attribution
     sources: {},
     revenue: { service: w.gross, product: 0 },
     promotions: { service: w.promo, product: 0 }
