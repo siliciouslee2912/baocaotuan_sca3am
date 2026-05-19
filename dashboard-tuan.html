@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.02" />
+<meta name="version" content="v2026.05.14.03" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 debug-helpers -->
+<!-- BUILD: 2026-05-14 rename-promos -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -495,8 +495,8 @@
         <div class="metric-toggles" id="revenueModeToggle">
           <div class="metric-toggle on" data-mode="net" title="Doanh thu sau khi trừ tất cả khuyến mãi (= TỔNG ĐÃ THANH TOÁN)">DT thuần</div>
           <div class="metric-toggle" data-mode="gross" title="Doanh thu chưa trừ khuyến mãi (= NGUYÊN GIÁ)">DT gộp</div>
-          <div class="metric-toggle" data-mode="promo_ctkm" title="Giảm giá chương trình KM (cột GIẢM / TĂNG GIÁ)">Giảm KM CTKM</div>
-          <div class="metric-toggle" data-mode="promo_voucher" title="Giảm giá voucher sinh nhật / hạng khách (= DT gộp − DT thuần − CTKM)">Giảm KM voucher</div>
+          <div class="metric-toggle" data-mode="promo_ctkm" title="Giảm giá chương trình KM (cột GIẢM / TĂNG GIÁ)">Giảm CTKM</div>
+          <div class="metric-toggle" data-mode="promo_voucher" title="Giảm giá voucher sinh nhật / hạng khách (= DT gộp − DT thuần − CTKM)">Giảm Hạng khách</div>
           <div class="metric-toggle" data-mode="promo" title="Tổng giảm trừ = CTKM + Voucher (= DT gộp − DT thuần)">Tổng giảm trừ</div>
           <div class="metric-toggle weekly-hidden" data-mode="profit" title="Lợi nhuận = Doanh thu − Chi phí (từ P&amp;L)">Lợi nhuận</div>
           <div class="metric-toggle weekly-hidden" data-mode="cost" title="Tổng chi phí từ báo cáo P&amp;L">Chi phí</div>
@@ -3567,9 +3567,30 @@ function verifyMonth(branchId, monthYYYY_MM) {
     totals.promo += promo; totals.voucher += voucher; totals.cust += cust;
     console.log('  ' + key + '  ' + type.padEnd(7) + '  orders=' + orders + '  gross=' + gross.toLocaleString() + '  ctkm=' + promo.toLocaleString() + '  vouc=' + voucher.toLocaleString() + '  net=' + net.toLocaleString() + '  KH=' + cust);
   });
-  console.log('%c  TOTAL: orders=' + totals.orders + '  gross=' + totals.gross.toLocaleString() + '  ctkm=' + totals.promo.toLocaleString() + '  vouc=' + totals.voucher.toLocaleString() + '  net=' + totals.net.toLocaleString() + '  KH=' + totals.cust,
+  console.log('%c  TOTAL từ entries: orders=' + totals.orders + '  gross=' + totals.gross.toLocaleString() + '  ctkm=' + totals.promo.toLocaleString() + '  vouc=' + totals.voucher.toLocaleString() + '  net=' + totals.net.toLocaleString() + '  KH=' + totals.cust,
     'color:#22c55e;font-weight:bold;');
-  return { matched, totals };
+
+  // Also compute what the chart pipeline would render (via aggregateByPeriod)
+  const prevBranch = activeBranch, prevMode = activeMode, prevRange = dateRange;
+  activeBranch = branchId; activeMode = 'monthly';
+  dateRange = { start: monthYYYY_MM + '-01', end: monthYYYY_MM + '-31' };
+  const periods = aggregateByPeriod(branchId, 'monthly');
+  const p = periods.find(p => p.key === monthYYYY_MM);
+  activeBranch = prevBranch; activeMode = prevMode; dateRange = prevRange;
+
+  if (p) {
+    const cg = p.revenue?.service || 0;
+    const cp = p.promotions?.service || 0;
+    const cv = p.promoVoucher?.service || 0;
+    console.log('%c  Chart period values: gross=' + cg.toLocaleString() + '  ctkm=' + cp.toLocaleString() + '  vouc=' + cv.toLocaleString() + '  net=' + (cg-cp-cv).toLocaleString() + '  totalCust=' + (p.totalCust || 0),
+      'color:#8b5cf6;font-weight:bold;');
+    if (cp !== totals.promo || cv !== totals.voucher) {
+      console.log('%c  ⚠️ CHART KHÔNG KHỚP với raw entries! Có thể đang aggregate cả entries thuộc tháng khác.', 'color:#ef4444;font-weight:bold;');
+    }
+  } else {
+    console.log('%c  ⚠️ Chart period KHÔNG tìm thấy tháng này (' + monthYYYY_MM + ').', 'color:#ef4444');
+  }
+  return { matched, totals, periodFromChart: p };
 }
 window.verifyMonth = verifyMonth;
 
