@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.11" />
+<meta name="version" content="v2026.05.14.12" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 no-pnl-fallback -->
+<!-- BUILD: 2026-05-14 remove-all-spa-seed -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1118,52 +1118,12 @@ function seedRealData(){
       // Khách mới = customer first-time tuần đó; Khách cũ = customer đã đến trước
       // Tổng GD: 10,000 | Doanh thu gộp: 3.25 tỷ | KM: 127 triệu
       // ============================================================
-      txs('tx-soan', '2025-12-01',  70, 216,  95457000,   4097100),
-      txs('tx-soan', '2025-12-08',  64, 227,  95599000,   2996500),
-      txs('tx-soan', '2025-12-15',  63, 227, 100843000,   3454600),
-      txs('tx-soan', '2025-12-22',  50, 175,  81903000,   3296300),
-      txs('tx-soan', '2025-12-29',  52, 206,  92434000,   3156100),
-      txs('tx-soan', '2026-01-05',  48, 235,  97305000,   3867900),
-      txs('tx-soan', '2026-01-12',  63, 252, 109298000,   3739000),
-      txs('tx-soan', '2026-01-19',  51, 190,  77705000,   2115900),
-      txs('tx-soan', '2026-01-26',  62, 267, 120286000,   4898000),
-      txs('tx-soan', '2026-02-02',  51, 301, 125480000,   4624700),
-      txs('tx-soan', '2026-02-09',  62, 291, 142390800,   6505800),
-      txs('tx-soan', '2026-02-23',  50, 218, 109643000,   8184500),
-      txs('tx-soan', '2026-03-02',  39, 246, 109734000,   4304000),
-      txs('tx-soan', '2026-03-09',  46, 226, 104057000,   3726300),
-      txs('tx-soan', '2026-03-16',  49, 242, 102697000,   3109400),
-      txs('tx-soan', '2026-03-23',  38, 254, 104155000,   3213300),
-      txs('tx-soan', '2026-03-30',  55, 215, 100222000,   2781700),
-      txs('tx-soan', '2026-04-06',  35, 239, 104570000,   4405200),
-      txs('tx-soan', '2026-04-13',  27, 255, 118369000,   4395600),
-      txs('tx-soan', '2026-04-20',  47, 258, 111210000,   3255300),
 
       // ============================================================
       // 3AM D'SPA QUAN HOA — DỮ LIỆU THỰC TẾ
       // Nguồn: file export 7,380 transactions (1/1/2025 → 26/4/2026)
       // Tổng GD: 7,380 | Doanh thu gộp: 2.42 tỷ | KM: 130 triệu
       // ============================================================
-      txs('cau-giay', '2025-12-01',  47, 173,  75394000,   4858500),
-      txs('cau-giay', '2025-12-08',  60, 169,  86691000,   6810500),
-      txs('cau-giay', '2025-12-15',  44, 146,  69525000,   3201700),
-      txs('cau-giay', '2025-12-22',  63, 160,  75474000,   3982000),
-      txs('cau-giay', '2025-12-29',  35, 150,  66785000,   3713000),
-      txs('cau-giay', '2026-01-05',  43, 150,  68360000,   3460500),
-      txs('cau-giay', '2026-01-12',  46, 179,  90576000,   3961500),
-      txs('cau-giay', '2026-01-19',  46, 147,  66598000,   3595500),
-      txs('cau-giay', '2026-01-26',  48, 172,  79779000,   4747300),
-      txs('cau-giay', '2026-02-02',  61, 179,  85882000,   4830000),
-      txs('cau-giay', '2026-02-09',  43, 165,  79460000,   5964000),
-      txs('cau-giay', '2026-02-23',  32, 156,  69827000,   5995700),
-      txs('cau-giay', '2026-03-02',  35, 167,  76834000,   4155900),
-      txs('cau-giay', '2026-03-09',  43, 165,  80635000,   4527000),
-      txs('cau-giay', '2026-03-16',  40, 153,  70900000,   3439800),
-      txs('cau-giay', '2026-03-23',  31, 166,  74611000,   2998600),
-      txs('cau-giay', '2026-03-30',  45, 159,  72748000,   3800600),
-      txs('cau-giay', '2026-04-06',  34, 160,  73153000,   2886900),
-      txs('cau-giay', '2026-04-13',  19, 171,  66200000,   2523500),
-      txs('cau-giay', '2026-04-20',  40, 169,  73715000,   2693800),
 
       // ===== HA-DONG, SCA: TUẦN 9/3 - 15/3 (placeholder, chờ user upload file thật) =====
       spa('ha-dong',  '2026-03-09',  72,  22706000),
@@ -3397,6 +3357,28 @@ async function loadDataAndRender() {
     });
     if (renamed > 0) {
       console.warn(`[Migration] Đã đổi ${renamed} entries từ branchId 'quan-hoa' → 'cau-giay'.`);
+    }
+  }
+
+  // MIGRATION (2026-05-14b): remove ALL legacy weekly seed entries for spa
+  // branches in T12/2025 → T4/2026 (the original seed range). User is uploading
+  // daily Excel data which is the source of truth. Any weekly entry without
+  // .date field in this range is leftover seed that pollutes the aggregation
+  // (causing wrong DT / KM numbers in monthly view).
+  if (Array.isArray(data.entries)) {
+    const before = data.entries.length;
+    data.entries = data.entries.filter(e => {
+      const isLegacySpaSeed = (
+        (e.branchId === 'tx-soan' || e.branchId === 'cau-giay' || e.branchId === 'ha-dong') &&
+        !e.date &&                       // not a daily-upload entry
+        e.weekStart &&
+        (e.weekStart >= '2025-12-01' && e.weekStart <= '2026-04-30')
+      );
+      return !isLegacySpaSeed;
+    });
+    const removed = before - data.entries.length;
+    if (removed > 0) {
+      console.warn(`[Migration v2] Đã xoá ${removed} weekly seed cũ T12/2025-T4/2026 (tx-soan/cau-giay).`);
     }
   }
 
