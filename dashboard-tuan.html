@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.06" />
+<meta name="version" content="v2026.05.14.07" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 rename-cau-giay -->
+<!-- BUILD: 2026-05-14 branch-id-cau-giay -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -809,7 +809,7 @@
 const BRANCHES = [
   { id: 'all',     name: 'Toàn hệ thống 3AM',           type: 'all',     color: '#1a2238' },
   { id: 'tx-soan', name: "3AM D'SPA · Trần Xuân Soạn",  type: 'spa',     color: '#ef4444' },
-  { id: 'quan-hoa',name: "3AM D'SPA · Cầu Giấy",        type: 'spa',     color: '#f59e0b' },
+  { id: 'cau-giay',name: "3AM D'SPA · Cầu Giấy",        type: 'spa',     color: '#f59e0b' },
   { id: 'ha-dong', name: "3AM D'SPA · Hà Đông",         type: 'spa',     color: '#10b981' },
   { id: 'sca',     name: 'SCA Academy',                  type: 'academy', color: '#8b5cf6' }
 ];
@@ -985,7 +985,7 @@ function seedSampleData(){
   // 12 weeks of data so monthly view has ~3 months
   const spaSeed = {
     'tx-soan': { svc: 720_000_000, prod: 180_000_000, cust: 145, growth: 1.02 },
-    'quan-hoa':{ svc: 540_000_000, prod: 130_000_000, cust: 110, growth: 1.03 },
+    'cau-giay':{ svc: 540_000_000, prod: 130_000_000, cust: 110, growth: 1.03 },
     'ha-dong': { svc: 480_000_000, prod: 110_000_000, cust: 95,  growth: 1.015 }
   };
   const scaSeed = { custBase: 6, growth: 1.04, courses: { therapist: { count: 3, price: 12_000_000 }, consultant: { count: 2, price: 25_000_000 }, expert: { count: 1, price: 45_000_000 } } };
@@ -1144,26 +1144,26 @@ function seedRealData(){
       // Nguồn: file export 7,380 transactions (1/1/2025 → 26/4/2026)
       // Tổng GD: 7,380 | Doanh thu gộp: 2.42 tỷ | KM: 130 triệu
       // ============================================================
-      txs('quan-hoa', '2025-12-01',  47, 173,  75394000,   4858500),
-      txs('quan-hoa', '2025-12-08',  60, 169,  86691000,   6810500),
-      txs('quan-hoa', '2025-12-15',  44, 146,  69525000,   3201700),
-      txs('quan-hoa', '2025-12-22',  63, 160,  75474000,   3982000),
-      txs('quan-hoa', '2025-12-29',  35, 150,  66785000,   3713000),
-      txs('quan-hoa', '2026-01-05',  43, 150,  68360000,   3460500),
-      txs('quan-hoa', '2026-01-12',  46, 179,  90576000,   3961500),
-      txs('quan-hoa', '2026-01-19',  46, 147,  66598000,   3595500),
-      txs('quan-hoa', '2026-01-26',  48, 172,  79779000,   4747300),
-      txs('quan-hoa', '2026-02-02',  61, 179,  85882000,   4830000),
-      txs('quan-hoa', '2026-02-09',  43, 165,  79460000,   5964000),
-      txs('quan-hoa', '2026-02-23',  32, 156,  69827000,   5995700),
-      txs('quan-hoa', '2026-03-02',  35, 167,  76834000,   4155900),
-      txs('quan-hoa', '2026-03-09',  43, 165,  80635000,   4527000),
-      txs('quan-hoa', '2026-03-16',  40, 153,  70900000,   3439800),
-      txs('quan-hoa', '2026-03-23',  31, 166,  74611000,   2998600),
-      txs('quan-hoa', '2026-03-30',  45, 159,  72748000,   3800600),
-      txs('quan-hoa', '2026-04-06',  34, 160,  73153000,   2886900),
-      txs('quan-hoa', '2026-04-13',  19, 171,  66200000,   2523500),
-      txs('quan-hoa', '2026-04-20',  40, 169,  73715000,   2693800),
+      txs('cau-giay', '2025-12-01',  47, 173,  75394000,   4858500),
+      txs('cau-giay', '2025-12-08',  60, 169,  86691000,   6810500),
+      txs('cau-giay', '2025-12-15',  44, 146,  69525000,   3201700),
+      txs('cau-giay', '2025-12-22',  63, 160,  75474000,   3982000),
+      txs('cau-giay', '2025-12-29',  35, 150,  66785000,   3713000),
+      txs('cau-giay', '2026-01-05',  43, 150,  68360000,   3460500),
+      txs('cau-giay', '2026-01-12',  46, 179,  90576000,   3961500),
+      txs('cau-giay', '2026-01-19',  46, 147,  66598000,   3595500),
+      txs('cau-giay', '2026-01-26',  48, 172,  79779000,   4747300),
+      txs('cau-giay', '2026-02-02',  61, 179,  85882000,   4830000),
+      txs('cau-giay', '2026-02-09',  43, 165,  79460000,   5964000),
+      txs('cau-giay', '2026-02-23',  32, 156,  69827000,   5995700),
+      txs('cau-giay', '2026-03-02',  35, 167,  76834000,   4155900),
+      txs('cau-giay', '2026-03-09',  43, 165,  80635000,   4527000),
+      txs('cau-giay', '2026-03-16',  40, 153,  70900000,   3439800),
+      txs('cau-giay', '2026-03-23',  31, 166,  74611000,   2998600),
+      txs('cau-giay', '2026-03-30',  45, 159,  72748000,   3800600),
+      txs('cau-giay', '2026-04-06',  34, 160,  73153000,   2886900),
+      txs('cau-giay', '2026-04-13',  19, 171,  66200000,   2523500),
+      txs('cau-giay', '2026-04-20',  40, 169,  73715000,   2693800),
 
       // ===== HA-DONG, SCA: TUẦN 9/3 - 15/3 (placeholder, chờ user upload file thật) =====
       spa('ha-dong',  '2026-03-09',  72,  22706000),
@@ -1196,7 +1196,7 @@ function seedRealData(){
 }
 
 // Bump SEED_VERSION whenever seedRealData() changes meaningfully so we can detect stale localStorage
-const SEED_VERSION = 'tx-soan-quan-hoa-2026-04-26';
+const SEED_VERSION = 'tx-soan-cau-giay-2026-05-14';
 
 const _stored = loadData();
 let DATA;
@@ -1423,7 +1423,7 @@ function aggregateByPeriod(branchId, mode){
         } else if (branchId === 'all') {
           // Split: spa branches → service, SCA → courses
           let spaRev = 0;
-          ['tx-soan','quan-hoa','ha-dong'].forEach(bid => {
+          ['tx-soan','cau-giay','ha-dong'].forEach(bid => {
             const r = pnlForMonth(bid, p.key);
             if (r) spaRev += r.revenue;
           });
@@ -1680,7 +1680,7 @@ let mainChart, sourceChart, customerChart;
 ========================================================== */
 const PNL_KEY_MAP = {
   'tx-soan': 'tx_soan',
-  'quan-hoa': 'quan_hoa',
+  'cau-giay': 'cau_giay',
   'ha-dong': 'ha_dong',
   'sca': 'sca'
 };
@@ -1693,7 +1693,7 @@ function pnlForMonth(branchId, monthKeyStr){
   const idx = DATA.pnl.periods.indexOf(monthKeyStr);
   if (idx < 0) return null;
   const branchKeys = (branchId === 'all')
-    ? ['tx_soan','quan_hoa','ha_dong','sca']
+    ? ['tx_soan','cau_giay','ha_dong','sca']
     : [PNL_KEY_MAP[branchId]].filter(Boolean);
   let rev = 0, cost = 0, profit = 0;
   branchKeys.forEach(bk => {
@@ -3193,8 +3193,8 @@ $$('#revenueModeToggle .metric-toggle').forEach(el => {
   };
 });
 
-const PNL_DATA = {"periods":["2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"],"tx_soan":{"revenue":[377072000,250883000,315264000,334612999,99449000,253858000,183184000,27540000,126204000,220651000,321325000,305708000,379295000,206105000,332687999,359750000,405599000,426513000,477820000,649652700,603177000,582010325,525470800,472184830,423541252,419817870,431137050,425306500,546931250,484899400,566454200,549012575,483366900,606040900,570529299,575917400,727653178,584399500,678858500,644197399,671360650,565012800,715914400,712715113,699149998,618553500,657563000,646016000,662275500,416246000,591913500,537790000,496357000,615137500,566719588,649762692,510358761,561856021,529356200,417783500,421318100,358247300,446750900],"cost":[305087000,229784968,259256462,215878065,89289566,187582000,159711000,24480000,74613500,212307440,222772213,302876000,350348000,171252000,220702245,277243000,221997000,351545000,427842000,547726610,505012710,425379738,470950000,341862860,352550610,323131000,267513630,267007000,443836890,274347765,346467160,409805500,478640000,519184076,397536935,458339291,714944186,494612674,481259299,386244513,570115210,523481505,554718164,550873016,620925601,453914998,431031665,495816391,290060065,390362816,388676065,434778896,268269180,518907584,255026692,358621098,566811240,400594854,300868268,277183719,379138232,227630606,243728998],"profit":[71985000,21098032,56007538,118734934,10159434,66276000,23473000,3060000,51590500,8343560,98552787,2832000,28947000,34853000,111985754,82507000,183602000,74968000,49978000,101926090,98164290,156630587,54520800,130321970,70990642,96686870,163623420,158299500,103094360,210551635,219987040,139207075,4726900,86856824,172992364,117578109,12708992,89786826,197599201,257952886,101245440,41531295,161196236,161842097,78224397,164638502,226531335,150199609,372215435,25883184,203237435,103011104,228087820,96229916,311692896,291141594,-56452479,161261167,228487932,140599781,42179868,130616694,203021902]},"quan_hoa":{"revenue":[146153000,83691000,132427000,129468000,45700000,101214000,53053000,2660000,41525000,147493000,107853000,92707000,159426000,65305000,104184076,129497000,146863000,164795000,211670000,165469252,200451499,226925950,274793071,188864000,169347100,173318500,205889000,189762000,218551999,191936500,246711499,175788798,213747300,242756400,275604499,420176500,443426492,276472898,324999299,329379550,404821900,348848600,327833800,346516499,333118000,318643000,366566500,336003999,360207800,236092500,377327500,383356850,345206500,425256500,389377500,387341000,339473800,359300200,331244500,316011800,305894700,226262800,315290200],"cost":[99193000,63562000,88577613,89990545,42119261,78313000,44413000,14317000,41892000,130464271,84985866,92375000,100348000,63106000,80058595,90341000,108896000,149869000,173678500,158742000,196130000,181556009,180409000,242903966,224154000,132167000,155169000,154695000,168762000,157308266,178653000,153973500,189667100,183800079,211989110,325346770,378324066,228422230,234944907,237854715,264360608,286701357,266105405,246280286,156484584,169056543,204661524,265811028,222472867,214077439,347959545,311028852,204730680,278806851,258244471,267550268,290459273,268664912,231094378,263243382,273188603,169706951,209010811],"profit":[46960000,20129000,43849387,39477455,3580739,22901000,8640000,-11657000,-367000,17028729,22867134,332000,59078000,2199000,24125481,39156000,37967000,14926000,37991500,6727252,4321499,45369941,94384071,-54039966,-54806900,41151500,50720000,35067000,49789999,34628234,68058499,21815298,24080200,58956321,63615389,94829730,65102426,48050668,90054392,91524835,140461292,62147243,61728395,100236213,176633416,149586457,161904976,70192971,137734933,22015061,29367955,72327998,140475820,146449649,131133029,119790732,49014527,90635288,100150122,52768418,32706097,56555849,106279389]},"ha_dong":{"revenue":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,76320500,89550500,95467000,102463500],"cost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,180901568,185540816,122854685,145227730],"profit":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-104581068,-95990316,-27387685,-42764230]},"sca":{"revenue":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2092000,10000000,214800000],"cost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,167418962,80568918,161903430],"profit":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-165326962,-70568918,52896570]}};
-const KTV_DATA = {"employees":{"Bùi Diệu My":{"name":"Bùi Diệu My","sessions":221,"salary":5200000,"unique_customers":162,"top_services":[{"name":"Lấy nhân mụn","count":71},{"name":"Extra Kết hợp Plasma","count":40},{"name":"Aqua Peel","count":18},{"name":"Đào thải độc tố - Không thâm","count":18},{"name":"Cấp Nước","count":12}],"weekly":{"2026-05-04":{"sessions":6,"salary":160000,"customers":5},"2026-04-27":{"sessions":53,"salary":1160000,"customers":39},"2026-04-20":{"sessions":59,"salary":1400000,"customers":45},"2026-04-13":{"sessions":23,"salary":550000,"customers":21},"2026-04-06":{"sessions":45,"salary":1130000,"customers":38},"2026-03-30":{"sessions":35,"salary":800000,"customers":29}}},"Nguyễn Thị Thu Hương":{"name":"Nguyễn Thị Thu Hương","sessions":239,"salary":4952000,"unique_customers":163,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":56},{"name":"Triệt Vùng Nách","count":49},{"name":"Lấy nhân mụn","count":35},{"name":"Extra Kết hợp Plasma","count":12},{"name":"Triệt Cả Chân (Nữ)","count":12}],"weekly":{"2026-05-04":{"sessions":6,"salary":132000,"customers":5},"2026-04-27":{"sessions":27,"salary":551000,"customers":21},"2026-04-20":{"sessions":49,"salary":993000,"customers":33},"2026-04-13":{"sessions":84,"salary":1819000,"customers":60},"2026-04-06":{"sessions":40,"salary":753000,"customers":30},"2026-03-30":{"sessions":33,"salary":704000,"customers":27}}},"Hà Lan Anh":{"name":"Hà Lan Anh","sessions":243,"salary":4836000,"unique_customers":156,"top_services":[{"name":"Triệt Vùng Nách","count":58},{"name":"Triệt Vùng Bi (Nữ)","count":47},{"name":"Lấy nhân mụn","count":29},{"name":"Extra Kết hợp Plasma","count":18},{"name":"Aqua Peel","count":11}],"weekly":{"2026-05-04":{"sessions":5,"salary":80000,"customers":4},"2026-04-27":{"sessions":41,"salary":798000,"customers":28},"2026-04-20":{"sessions":56,"salary":1129000,"customers":39},"2026-04-13":{"sessions":63,"salary":1294000,"customers":51},"2026-04-06":{"sessions":47,"salary":892000,"customers":27},"2026-03-30":{"sessions":31,"salary":643000,"customers":23}}},"Chu Thị Mai Hoa":{"name":"Chu Thị Mai Hoa","sessions":5,"salary":100000,"unique_customers":4,"top_services":[{"name":"Lấy nhân mụn","count":4},{"name":"Aqua Peel","count":1}],"weekly":{"2026-05-04":{"sessions":1,"salary":20000,"customers":1},"2026-04-27":{"sessions":1,"salary":20000,"customers":1},"2026-04-20":{"sessions":1,"salary":20000,"customers":1},"2026-04-06":{"sessions":1,"salary":20000,"customers":1},"2026-03-30":{"sessions":1,"salary":20000,"customers":1}}},"Nguyễn Thị Linh Chi":{"name":"Nguyễn Thị Linh Chi","sessions":170,"salary":3597000,"unique_customers":115,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":38},{"name":"Triệt Vùng Nách","count":30},{"name":"Lấy nhân mụn","count":20},{"name":"Aqua Peel","count":9},{"name":"Triệt Cả Chân (Nữ)","count":9}],"weekly":{"2026-05-04":{"sessions":4,"salary":100000,"customers":4},"2026-04-27":{"sessions":27,"salary":640000,"customers":17},"2026-04-20":{"sessions":55,"salary":1149000,"customers":44},"2026-04-13":{"sessions":18,"salary":333000,"customers":12},"2026-04-06":{"sessions":42,"salary":870000,"customers":33},"2026-03-30":{"sessions":24,"salary":505000,"customers":19}}},"Trần Thị Hồng Anh":{"name":"Trần Thị Hồng Anh","sessions":318,"salary":6698000,"unique_customers":205,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":65},{"name":"Triệt Vùng Nách","count":63},{"name":"Lấy nhân mụn","count":40},{"name":"Đào thải độc tố - Không thâm","count":14},{"name":"Extra Kết hợp Plasma","count":13}],"weekly":{"2026-05-04":{"sessions":4,"salary":84000,"customers":3},"2026-04-27":{"sessions":66,"salary":1327000,"customers":50},"2026-04-20":{"sessions":93,"salary":1937000,"customers":62},"2026-04-13":{"sessions":61,"salary":1344000,"customers":51},"2026-04-06":{"sessions":52,"salary":1093000,"customers":39},"2026-03-30":{"sessions":42,"salary":913000,"customers":29}}},"Nguyễn Hồng Hạnh":{"name":"Nguyễn Hồng Hạnh","sessions":36,"salary":817000,"unique_customers":20,"top_services":[{"name":"Triệt Vùng Nách","count":7},{"name":"Lấy nhân mụn","count":7},{"name":"Triệt Cả Chân (Nữ)","count":3},{"name":"Triệt Vùng Bi (Nữ)","count":3},{"name":"Triệt Cả Tay (nữ)","count":3}],"weekly":{"2026-04-13":{"sessions":8,"salary":157000,"customers":5},"2026-04-06":{"sessions":28,"salary":660000,"customers":15}}},"Phan Thị Kim Tuyết":{"name":"Phan Thị Kim Tuyết","sessions":51,"salary":996000,"unique_customers":40,"top_services":[{"name":"Triệt Vùng Nách","count":12},{"name":"Triệt Vùng Bi (Nữ)","count":11},{"name":"Lấy nhân mụn","count":5},{"name":"ALA PDT - Dr.CPU","count":5},{"name":"Cấp Nước","count":3}],"weekly":{"2026-04-06":{"sessions":26,"salary":498000,"customers":23},"2026-03-30":{"sessions":25,"salary":498000,"customers":17}}},"Nguyễn Thị Thu Hiền":{"name":"Nguyễn Thị Thu Hiền","sessions":41,"salary":901000,"unique_customers":28,"top_services":[{"name":"Lấy nhân mụn","count":10},{"name":"Triệt Vùng Bi (Nữ)","count":9},{"name":"Aqua Peel","count":4},{"name":"Triệt Vùng Nách","count":4},{"name":"Extra Kết hợp Plasma","count":3}],"weekly":{"2026-03-30":{"sessions":41,"salary":901000,"customers":28}}}},"branches":["quan-hoa"]};
+const PNL_DATA = {"periods":["2021-01","2021-02","2021-03","2021-04","2021-05","2021-06","2021-07","2021-08","2021-09","2021-10","2021-11","2021-12","2022-01","2022-02","2022-03","2022-04","2022-05","2022-06","2022-07","2022-08","2022-09","2022-10","2022-11","2022-12","2023-01","2023-02","2023-03","2023-04","2023-05","2023-06","2023-07","2023-08","2023-09","2023-10","2023-11","2023-12","2024-01","2024-02","2024-03","2024-04","2024-05","2024-06","2024-07","2024-08","2024-09","2024-10","2024-11","2024-12","2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"],"tx_soan":{"revenue":[377072000,250883000,315264000,334612999,99449000,253858000,183184000,27540000,126204000,220651000,321325000,305708000,379295000,206105000,332687999,359750000,405599000,426513000,477820000,649652700,603177000,582010325,525470800,472184830,423541252,419817870,431137050,425306500,546931250,484899400,566454200,549012575,483366900,606040900,570529299,575917400,727653178,584399500,678858500,644197399,671360650,565012800,715914400,712715113,699149998,618553500,657563000,646016000,662275500,416246000,591913500,537790000,496357000,615137500,566719588,649762692,510358761,561856021,529356200,417783500,421318100,358247300,446750900],"cost":[305087000,229784968,259256462,215878065,89289566,187582000,159711000,24480000,74613500,212307440,222772213,302876000,350348000,171252000,220702245,277243000,221997000,351545000,427842000,547726610,505012710,425379738,470950000,341862860,352550610,323131000,267513630,267007000,443836890,274347765,346467160,409805500,478640000,519184076,397536935,458339291,714944186,494612674,481259299,386244513,570115210,523481505,554718164,550873016,620925601,453914998,431031665,495816391,290060065,390362816,388676065,434778896,268269180,518907584,255026692,358621098,566811240,400594854,300868268,277183719,379138232,227630606,243728998],"profit":[71985000,21098032,56007538,118734934,10159434,66276000,23473000,3060000,51590500,8343560,98552787,2832000,28947000,34853000,111985754,82507000,183602000,74968000,49978000,101926090,98164290,156630587,54520800,130321970,70990642,96686870,163623420,158299500,103094360,210551635,219987040,139207075,4726900,86856824,172992364,117578109,12708992,89786826,197599201,257952886,101245440,41531295,161196236,161842097,78224397,164638502,226531335,150199609,372215435,25883184,203237435,103011104,228087820,96229916,311692896,291141594,-56452479,161261167,228487932,140599781,42179868,130616694,203021902]},"cau_giay":{"revenue":[146153000,83691000,132427000,129468000,45700000,101214000,53053000,2660000,41525000,147493000,107853000,92707000,159426000,65305000,104184076,129497000,146863000,164795000,211670000,165469252,200451499,226925950,274793071,188864000,169347100,173318500,205889000,189762000,218551999,191936500,246711499,175788798,213747300,242756400,275604499,420176500,443426492,276472898,324999299,329379550,404821900,348848600,327833800,346516499,333118000,318643000,366566500,336003999,360207800,236092500,377327500,383356850,345206500,425256500,389377500,387341000,339473800,359300200,331244500,316011800,305894700,226262800,315290200],"cost":[99193000,63562000,88577613,89990545,42119261,78313000,44413000,14317000,41892000,130464271,84985866,92375000,100348000,63106000,80058595,90341000,108896000,149869000,173678500,158742000,196130000,181556009,180409000,242903966,224154000,132167000,155169000,154695000,168762000,157308266,178653000,153973500,189667100,183800079,211989110,325346770,378324066,228422230,234944907,237854715,264360608,286701357,266105405,246280286,156484584,169056543,204661524,265811028,222472867,214077439,347959545,311028852,204730680,278806851,258244471,267550268,290459273,268664912,231094378,263243382,273188603,169706951,209010811],"profit":[46960000,20129000,43849387,39477455,3580739,22901000,8640000,-11657000,-367000,17028729,22867134,332000,59078000,2199000,24125481,39156000,37967000,14926000,37991500,6727252,4321499,45369941,94384071,-54039966,-54806900,41151500,50720000,35067000,49789999,34628234,68058499,21815298,24080200,58956321,63615389,94829730,65102426,48050668,90054392,91524835,140461292,62147243,61728395,100236213,176633416,149586457,161904976,70192971,137734933,22015061,29367955,72327998,140475820,146449649,131133029,119790732,49014527,90635288,100150122,52768418,32706097,56555849,106279389]},"ha_dong":{"revenue":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,76320500,89550500,95467000,102463500],"cost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,180901568,185540816,122854685,145227730],"profit":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-104581068,-95990316,-27387685,-42764230]},"sca":{"revenue":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2092000,10000000,214800000],"cost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,167418962,80568918,161903430],"profit":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-165326962,-70568918,52896570]}};
+const KTV_DATA = {"employees":{"Bùi Diệu My":{"name":"Bùi Diệu My","sessions":221,"salary":5200000,"unique_customers":162,"top_services":[{"name":"Lấy nhân mụn","count":71},{"name":"Extra Kết hợp Plasma","count":40},{"name":"Aqua Peel","count":18},{"name":"Đào thải độc tố - Không thâm","count":18},{"name":"Cấp Nước","count":12}],"weekly":{"2026-05-04":{"sessions":6,"salary":160000,"customers":5},"2026-04-27":{"sessions":53,"salary":1160000,"customers":39},"2026-04-20":{"sessions":59,"salary":1400000,"customers":45},"2026-04-13":{"sessions":23,"salary":550000,"customers":21},"2026-04-06":{"sessions":45,"salary":1130000,"customers":38},"2026-03-30":{"sessions":35,"salary":800000,"customers":29}}},"Nguyễn Thị Thu Hương":{"name":"Nguyễn Thị Thu Hương","sessions":239,"salary":4952000,"unique_customers":163,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":56},{"name":"Triệt Vùng Nách","count":49},{"name":"Lấy nhân mụn","count":35},{"name":"Extra Kết hợp Plasma","count":12},{"name":"Triệt Cả Chân (Nữ)","count":12}],"weekly":{"2026-05-04":{"sessions":6,"salary":132000,"customers":5},"2026-04-27":{"sessions":27,"salary":551000,"customers":21},"2026-04-20":{"sessions":49,"salary":993000,"customers":33},"2026-04-13":{"sessions":84,"salary":1819000,"customers":60},"2026-04-06":{"sessions":40,"salary":753000,"customers":30},"2026-03-30":{"sessions":33,"salary":704000,"customers":27}}},"Hà Lan Anh":{"name":"Hà Lan Anh","sessions":243,"salary":4836000,"unique_customers":156,"top_services":[{"name":"Triệt Vùng Nách","count":58},{"name":"Triệt Vùng Bi (Nữ)","count":47},{"name":"Lấy nhân mụn","count":29},{"name":"Extra Kết hợp Plasma","count":18},{"name":"Aqua Peel","count":11}],"weekly":{"2026-05-04":{"sessions":5,"salary":80000,"customers":4},"2026-04-27":{"sessions":41,"salary":798000,"customers":28},"2026-04-20":{"sessions":56,"salary":1129000,"customers":39},"2026-04-13":{"sessions":63,"salary":1294000,"customers":51},"2026-04-06":{"sessions":47,"salary":892000,"customers":27},"2026-03-30":{"sessions":31,"salary":643000,"customers":23}}},"Chu Thị Mai Hoa":{"name":"Chu Thị Mai Hoa","sessions":5,"salary":100000,"unique_customers":4,"top_services":[{"name":"Lấy nhân mụn","count":4},{"name":"Aqua Peel","count":1}],"weekly":{"2026-05-04":{"sessions":1,"salary":20000,"customers":1},"2026-04-27":{"sessions":1,"salary":20000,"customers":1},"2026-04-20":{"sessions":1,"salary":20000,"customers":1},"2026-04-06":{"sessions":1,"salary":20000,"customers":1},"2026-03-30":{"sessions":1,"salary":20000,"customers":1}}},"Nguyễn Thị Linh Chi":{"name":"Nguyễn Thị Linh Chi","sessions":170,"salary":3597000,"unique_customers":115,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":38},{"name":"Triệt Vùng Nách","count":30},{"name":"Lấy nhân mụn","count":20},{"name":"Aqua Peel","count":9},{"name":"Triệt Cả Chân (Nữ)","count":9}],"weekly":{"2026-05-04":{"sessions":4,"salary":100000,"customers":4},"2026-04-27":{"sessions":27,"salary":640000,"customers":17},"2026-04-20":{"sessions":55,"salary":1149000,"customers":44},"2026-04-13":{"sessions":18,"salary":333000,"customers":12},"2026-04-06":{"sessions":42,"salary":870000,"customers":33},"2026-03-30":{"sessions":24,"salary":505000,"customers":19}}},"Trần Thị Hồng Anh":{"name":"Trần Thị Hồng Anh","sessions":318,"salary":6698000,"unique_customers":205,"top_services":[{"name":"Triệt Vùng Bi (Nữ)","count":65},{"name":"Triệt Vùng Nách","count":63},{"name":"Lấy nhân mụn","count":40},{"name":"Đào thải độc tố - Không thâm","count":14},{"name":"Extra Kết hợp Plasma","count":13}],"weekly":{"2026-05-04":{"sessions":4,"salary":84000,"customers":3},"2026-04-27":{"sessions":66,"salary":1327000,"customers":50},"2026-04-20":{"sessions":93,"salary":1937000,"customers":62},"2026-04-13":{"sessions":61,"salary":1344000,"customers":51},"2026-04-06":{"sessions":52,"salary":1093000,"customers":39},"2026-03-30":{"sessions":42,"salary":913000,"customers":29}}},"Nguyễn Hồng Hạnh":{"name":"Nguyễn Hồng Hạnh","sessions":36,"salary":817000,"unique_customers":20,"top_services":[{"name":"Triệt Vùng Nách","count":7},{"name":"Lấy nhân mụn","count":7},{"name":"Triệt Cả Chân (Nữ)","count":3},{"name":"Triệt Vùng Bi (Nữ)","count":3},{"name":"Triệt Cả Tay (nữ)","count":3}],"weekly":{"2026-04-13":{"sessions":8,"salary":157000,"customers":5},"2026-04-06":{"sessions":28,"salary":660000,"customers":15}}},"Phan Thị Kim Tuyết":{"name":"Phan Thị Kim Tuyết","sessions":51,"salary":996000,"unique_customers":40,"top_services":[{"name":"Triệt Vùng Nách","count":12},{"name":"Triệt Vùng Bi (Nữ)","count":11},{"name":"Lấy nhân mụn","count":5},{"name":"ALA PDT - Dr.CPU","count":5},{"name":"Cấp Nước","count":3}],"weekly":{"2026-04-06":{"sessions":26,"salary":498000,"customers":23},"2026-03-30":{"sessions":25,"salary":498000,"customers":17}}},"Nguyễn Thị Thu Hiền":{"name":"Nguyễn Thị Thu Hiền","sessions":41,"salary":901000,"unique_customers":28,"top_services":[{"name":"Lấy nhân mụn","count":10},{"name":"Triệt Vùng Bi (Nữ)","count":9},{"name":"Aqua Peel","count":4},{"name":"Triệt Vùng Nách","count":4},{"name":"Extra Kết hợp Plasma","count":3}],"weekly":{"2026-03-30":{"sessions":41,"salary":901000,"customers":28}}}},"branches":["cau-giay"]};
 
 /* ==========================================================
    FIREBASE + AUTH + LOGIN
@@ -3404,13 +3404,26 @@ async function loadDataAndRender() {
   data.pnl = PNL_DATA;
   data.ktv = KTV_DATA;
 
-  // MIGRATION (2026-05-14): remove orphan seed entries T9-T11/2025 for tx-soan and quan-hoa.
+  // MIGRATION (2026-05-14): branch ID rename 'quan-hoa' → 'cau-giay'.
+  // Rewrite any pre-existing entries that still carry the old ID so all
+  // historic uploads continue to surface under the new identifier.
+  if (Array.isArray(data.entries)) {
+    let renamed = 0;
+    data.entries.forEach(e => {
+      if (e.branchId === 'quan-hoa') { e.branchId = 'cau-giay'; renamed += 1; }
+    });
+    if (renamed > 0) {
+      console.warn(`[Migration] Đã đổi ${renamed} entries từ branchId 'quan-hoa' → 'cau-giay'.`);
+    }
+  }
+
+  // MIGRATION (2026-05-14): remove orphan seed entries T9-T11/2025 for tx-soan and cau-giay.
   // These were synthetic seed data only; user has chosen to keep only real Excel uploads.
   if (Array.isArray(data.entries)) {
     const before = data.entries.length;
     data.entries = data.entries.filter(e => {
       const isOrphanSpaSeed = (
-        (e.branchId === 'tx-soan' || e.branchId === 'quan-hoa') &&
+        (e.branchId === 'tx-soan' || e.branchId === 'cau-giay') &&
         !e.date &&  // legacy weekly entries only (uploaded daily entries have .date)
         e.weekStart &&
         (e.weekStart >= '2025-09-01' && e.weekStart <= '2025-11-30')
@@ -3419,7 +3432,7 @@ async function loadDataAndRender() {
     });
     const removed = before - data.entries.length;
     if (removed > 0) {
-      console.warn(`[Migration] Đã xoá ${removed} seed entries T9-T11/2025 (tx-soan/quan-hoa).`);
+      console.warn(`[Migration] Đã xoá ${removed} seed entries T9-T11/2025 (tx-soan/cau-giay).`);
     }
   }
 
@@ -3654,9 +3667,9 @@ function detectBranchFromCoSo(s) {
   const lower = s.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');  // strip Vietnamese diacritics
   if (lower.includes('tran xuan soan')) return 'tx-soan';
-  // Branch ID stays 'quan-hoa' for data continuity; display name is now Cầu Giấy.
+  // Branch ID stays 'cau-giay' for data continuity; display name is now Cầu Giấy.
   // Accept both spellings in Excel CƠ SỞ column (file from POS may use either).
-  if (lower.includes('quan hoa') || lower.includes('cau giay')) return 'quan-hoa';
+  if (lower.includes('quan hoa') || lower.includes('cau giay')) return 'cau-giay';
   if (lower.includes('ha dong'))         return 'ha-dong';
   return null;
 }
@@ -3890,7 +3903,7 @@ function showUploadPreview(filename, r) {
   const totalPromo   = r.days.reduce((a,d)=>a+d.promo, 0);
   const totalVoucher = r.days.reduce((a,d)=>a+d.voucher, 0);
   const totalOrders  = r.days.reduce((a,d)=>a+d.txCount, 0);
-  const branchOpts = ['tx-soan','quan-hoa','ha-dong'].map(bid => {
+  const branchOpts = ['tx-soan','cau-giay','ha-dong'].map(bid => {
     const b = getBranch(bid);
     const sel = bid === r.branchId ? 'selected' : '';
     return `<option value="${bid}" ${sel}>${b ? b.name.replace("3AM D'SPA · ", "") : bid}</option>`;
@@ -4086,14 +4099,14 @@ saveData = function(data) {
 /* ==========================================================
    KTV VIEW (Hiệu suất nhân viên)
 ========================================================== */
-let ktvActiveBranch = 'quan-hoa';
+let ktvActiveBranch = 'cau-giay';
 let ktvSessionsChart = null, ktvSalaryChart = null;
 
 function renderKtvView() {
   if (!DATA.ktv) DATA.ktv = KTV_DATA;
   const data = DATA.ktv;
 
-  // Branch tabs (cur. only quan-hoa, but extensible)
+  // Branch tabs (cur. only cau-giay, but extensible)
   const tabsEl = document.getElementById('ktvBranchTabs');
   tabsEl.innerHTML = '';
   data.branches.forEach(bid => {
