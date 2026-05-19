@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.07" />
+<meta name="version" content="v2026.05.14.08" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 branch-id-cau-giay -->
+<!-- BUILD: 2026-05-14 pnl-fallback-only -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1407,34 +1407,62 @@ function aggregateByPeriod(branchId, mode){
   result = displayKeys.map(k => map.get(k) || emptyPeriod(k, mode));
 
   // ========================================================================
-  // P&L OVERRIDE for monthly mode: use accountant P&L data as source of truth
-  // for revenue when the month has P&L data. This is needed because:
-  //   1. Weekly transaction files only cover TXS + QH (missing HD, SCA)
-  //   2. Pre-Apr 2026, P&L revenue is "DT thuần" not split gross/promo, so we
-  //      set DT gộp = DT thuần and Giảm trừ KM = 0 per user's instruction.
-  // P&L revenue is allocated: spa branches → revenue.service, SCA → revenue.courses.
+  // P&L OVERRIDE for monthly mode (FALLBACK ONLY):
+  // Use accountant P&L data when there's NO uploaded transaction data for that
+  // (branch, month). Once user uploads daily Excel data for a month, that data
+  // takes precedence — P&L should NOT overwrite it (would corrupt the true
+  // numbers from POS transactions with slightly-reconciled P&L numbers).
+  //
+  // - Spa branch (tx-soan, cau-giay, ha-dong): use uploaded if available, else P&L
+  // - SCA academy: always use P&L (no transaction upload flow exists for academy)
+  // - 'all': per-branch decision, summing uploaded + P&L appropriately
   // ========================================================================
   if (mode === 'monthly') {
+    // Helper: check if a specific branch has uploaded entries for a given month
+    const hasUploadedData = (bid, monthKeyStr) =>
+      DATA.entries.some(e => e.branchId === bid && (
+        e.date ? e.date.startsWith(monthKeyStr) :
+        e.weekStart ? monthKey(e.weekStart) === monthKeyStr : false
+      ));
+
     result.forEach(p => {
-      const pnl = pnlForMonth(branchId, p.key);
-      if (pnl && pnl.revenue > 0) {
-        if (branchId === 'sca') {
+      if (branchId === 'sca') {
+        // SCA: no transaction upload → always use P&L when available
+        const pnl = pnlForMonth(branchId, p.key);
+        if (pnl && pnl.revenue > 0) {
           p.revenue = { service: 0, product: 0, courses: pnl.revenue };
-        } else if (branchId === 'all') {
-          // Split: spa branches → service, SCA → courses
-          let spaRev = 0;
-          ['tx-soan','cau-giay','ha-dong'].forEach(bid => {
-            const r = pnlForMonth(bid, p.key);
-            if (r) spaRev += r.revenue;
-          });
-          const scaR = pnlForMonth('sca', p.key);
-          p.revenue = { service: spaRev, product: 0, courses: scaR ? scaR.revenue : 0 };
-        } else {
-          // Spa branch: TXS, QH, HD
-          p.revenue = { service: pnl.revenue, product: 0, courses: 0 };
+          p.promotions = { service: 0, product: 0, courses: 0 };
+          p.promoVoucher = { service: 0, product: 0, courses: 0 };
         }
-        // Pre-Apr 2026: gross = net, promotions = 0
-        p.promotions = { service: 0, product: 0, courses: 0 };
+      } else if (branchId === 'all') {
+        // Sum across spa + sca. For each component branch, use its uploaded data
+        // if available, else fall back to P&L. Daily entries already contributed
+        // via the aggregation loop above — we only need to ADD P&L for branches
+        // that lack uploaded data this month.
+        const spaIds = ['tx-soan','cau-giay','ha-dong'];
+        let extraSpaRev = 0;
+        spaIds.forEach(bid => {
+          if (!hasUploadedData(bid, p.key)) {
+            const r = pnlForMonth(bid, p.key);
+            if (r) extraSpaRev += r.revenue;
+          }
+        });
+        // SCA: never uploaded, always from P&L
+        const scaR = pnlForMonth('sca', p.key);
+        const scaRev = scaR ? scaR.revenue : 0;
+        p.revenue.service = (p.revenue.service || 0) + extraSpaRev;
+        p.revenue.courses = (p.revenue.courses || 0) + scaRev;
+      } else {
+        // Spa branch (tx-soan, cau-giay, ha-dong)
+        if (!hasUploadedData(branchId, p.key)) {
+          const pnl = pnlForMonth(branchId, p.key);
+          if (pnl && pnl.revenue > 0) {
+            p.revenue = { service: pnl.revenue, product: 0, courses: 0 };
+            p.promotions = { service: 0, product: 0, courses: 0 };
+            p.promoVoucher = { service: 0, product: 0, courses: 0 };
+          }
+        }
+        // else: keep uploaded daily data as source of truth — do NOT override
       }
     });
   }
