@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.05.10" />
+<meta name="version" content="v2026.05.14.01" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-05 voucher-promo -->
+<!-- BUILD: 2026-05-14 daily-storage -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1278,8 +1278,10 @@ function getEntries(branchId){
   }
   if (dateRange.start || dateRange.end) {
     entries = entries.filter(e => {
-      if (dateRange.start && e.weekStart < dateRange.start) return false;
-      if (dateRange.end && e.weekStart > dateRange.end) return false;
+      // Prefer e.date (daily entry), fall back to e.weekStart (legacy weekly)
+      const key = e.date || e.weekStart;
+      if (dateRange.start && key < dateRange.start) return false;
+      if (dateRange.end && key > dateRange.end) return false;
       return true;
     });
   }
@@ -1288,13 +1290,23 @@ function getEntries(branchId){
 
 function aggregateByPeriod(branchId, mode){
   const map = new Map();
-  // For monthly mode: prefer the entry's explicit `month` field (set during Excel upload
-  // based on the file's date range), fall back to Monday's calendar month for legacy
-  // entries without explicit attribution. This preserves backward compatibility for
-  // seed data while letting uploads put their data in the correct calendar month
-  // (so a "01/04 - 30/04" file's 1301 transactions all count in April, including the
-  // straddling Mon-Mar-30 week whose transactions are actually April 1-5).
-  const getKey = (e) => mode === 'monthly' ? (e.month || monthKey(e.weekStart)) : e.weekStart;
+  // ===========================================================================
+  // KEY ASSIGNMENT:
+  // - Monthly mode: use the entry's date (substring YYYY-MM) — true calendar
+  //   month. For daily entries this is exact; for legacy weekly entries (no
+  //   .date), fall back to the calendar month of weekStart.
+  // - Weekly mode: use the Monday-of-week. Daily entries fall into the Monday
+  //   of their date; legacy weekly entries use their weekStart directly.
+  // ===========================================================================
+  const getKey = (e) => {
+    if (mode === 'monthly') {
+      if (e.date) return e.date.substring(0, 7);     // YYYY-MM
+      return monthKey(e.weekStart);                   // legacy fallback
+    }
+    // weekly mode
+    if (e.date) return toISODate(startOfWeek(new Date(e.date)));  // Monday of this day
+    return e.weekStart;
+  };
   const getLabel = (key) => mode === 'monthly' ? monthLabel(key) : weekLabel(key);
   getEntries(branchId).forEach(e => {
     const key = getKey(e);
@@ -2480,7 +2492,51 @@ function renderTable(){
   if (section) section.style.display = (activeMode === 'monthly') ? 'none' : '';
   if (activeMode === 'monthly') return;
 
-  const entries = getEntries(activeBranch).slice().sort((a,b) =>
+  // Aggregate daily entries → display as one row per week (otherwise 210+ daily
+  // rows would clutter the UI). Legacy weekly entries (no .date) pass through
+  // unchanged. Keys: branchId + weekStart.
+  const rawEntries = getEntries(activeBranch);
+  const weeklyAgg = new Map();
+  for (const e of rawEntries) {
+    const wk = e.weekStart || toISODate(startOfWeek(new Date(e.date)));
+    const k = e.branchId + '|' + wk;
+    let g = weeklyAgg.get(k);
+    if (!g) {
+      g = {
+        id: 'agg-' + k,                  // synthetic id (edit/delete disabled for aggregated rows)
+        branchId: e.branchId,
+        weekStart: wk,
+        newCustTotal: 0, returning: 0, orders: 0,
+        sources: {}, leads: {},
+        courses: COURSES.reduce((o,c)=>(o[c.id]={count:0,revenue:0,promotion:0},o),{}),
+        revenue: { service: 0, product: 0, courses: 0 },
+        promotions: { service: 0, product: 0, courses: 0 },
+        promoVoucher: { service: 0, product: 0, courses: 0 },
+        leadsTotal: 0, studentTotal: 0,
+        _hasDaily: false, _hasLegacy: false, _dailyCount: 0
+      };
+      weeklyAgg.set(k, g);
+    }
+    g.newCustTotal += (e.newCustTotal || 0);
+    g.returning    += (e.returning || 0);
+    g.orders       += (e.orders || 0);
+    g.revenue.service += (e.revenue?.service || 0);
+    g.revenue.product += (e.revenue?.product || 0);
+    g.revenue.courses += (e.revenue?.courses || 0);
+    g.promotions.service += (e.promotions?.service || 0);
+    g.promotions.product += (e.promotions?.product || 0);
+    g.promoVoucher.service += (e.promoVoucher?.service || 0);
+    g.promoVoucher.product += (e.promoVoucher?.product || 0);
+    g.leadsTotal   += (e.leadsTotal || 0);
+    g.studentTotal += (e.studentTotal || 0);
+    COURSES.forEach(c => {
+      g.courses[c.id].count    += (e.courses?.[c.id]?.count || 0);
+      g.courses[c.id].revenue  += (e.courses?.[c.id]?.revenue || 0);
+    });
+    if (e.date) { g._hasDaily = true; g._dailyCount += 1; }
+    else { g._hasLegacy = true; }
+  }
+  const entries = [...weeklyAgg.values()].sort((a,b) =>
     b.weekStart.localeCompare(a.weekStart) || a.branchId.localeCompare(b.branchId)
   );
   const area = $('#tableArea');
@@ -2529,6 +2585,7 @@ function renderTable(){
         ${detailCol}
         <td class="num strong">${fmtVND(totalRev)}</td>
         <td>
+          ${e._hasDaily ? `<span style="color:var(--text-muted);font-size:11px;font-style:italic;">${e._dailyCount} ngày upload</span>` : `
           <div class="row-actions">
             <button class="row-btn" title="Sửa" onclick="openModal('${e.id}')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -2536,7 +2593,7 @@ function renderTable(){
             <button class="row-btn danger" title="Xoá" onclick="deleteEntry('${e.id}')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
             </button>
-          </div>
+          </div>`}
         </td>
       </tr>
     `;
@@ -3455,7 +3512,8 @@ window.addEventListener('hashchange', () => {
 function dedupeEntries(entries) {
   const byKey = new Map();
   entries.forEach(e => {
-    const k = e.branchId + '|' + e.weekStart;
+    // Daily entries dedup by date; legacy by weekStart
+    const k = e.branchId + '|' + (e.date || e.weekStart);
     const existing = byKey.get(k);
     if (!existing) { byKey.set(k, e); return; }
     // Pick the one with more signal
@@ -3585,59 +3643,95 @@ function parseExcelSalesFile(arrayBuffer) {
   const dateMin = transactions[0].dt;
   const dateMax = transactions[transactions.length - 1].dt;
 
-  // Group by Monday-week, computing within-file new vs returning
-  const weeklyMap = new Map();  // weekStart ISO → {customers Set, newSet, retSet, gross, promo, net, txCount}
-  const seenCusts = new Set();
+  // ============================================================================
+  // DAILY AGGREGATION — source of truth. Each entry = 1 day.
+  // Tháng đếm = calendar month của ngày đó (chính xác 100%, không bị tuần lệch).
+  // ============================================================================
+  const dailyMap = new Map();  // 'YYYY-MM-DD' → {customers, newSet, retSet, gross, promo, net, txCount}
+  const seenCustsGlobal = new Set();  // for marking new vs returning across whole file
   for (const t of transactions) {
-    if (t.branchId && t.branchId !== branchId) continue;  // skip rows from other branches
-    const monday = mondayOfDate(t.dt);
-    const wk = toISO(monday);
-    if (!weeklyMap.has(wk)) {
-      weeklyMap.set(wk, { customers: new Set(), newSet: new Set(), retSet: new Set(),
-                         gross: 0, promo: 0, net: 0, txCount: 0 });
+    if (t.branchId && t.branchId !== branchId) continue;
+    const dayKey = toISO(new Date(t.dt.getFullYear(), t.dt.getMonth(), t.dt.getDate()));
+    if (!dailyMap.has(dayKey)) {
+      dailyMap.set(dayKey, { customers: new Set(), newSet: new Set(), retSet: new Set(),
+                             gross: 0, promo: 0, net: 0, txCount: 0 });
     }
-    const w = weeklyMap.get(wk);
-    w.gross += t.gross;
-    w.promo += t.promo;
-    w.net   += t.net;
-    w.txCount += 1;
+    const d = dailyMap.get(dayKey);
+    d.gross += t.gross;
+    d.promo += t.promo;
+    d.net   += t.net;
+    d.txCount += 1;
     if (t.custId) {
-      w.customers.add(t.custId);
-      if (seenCusts.has(t.custId)) w.retSet.add(t.custId);
-      else { w.newSet.add(t.custId); seenCusts.add(t.custId); }
+      d.customers.add(t.custId);
+      if (seenCustsGlobal.has(t.custId)) d.retSet.add(t.custId);
+      else { d.newSet.add(t.custId); seenCustsGlobal.add(t.custId); }
     }
   }
 
-  const weeks = [...weeklyMap.entries()]
-    .map(([wk, w]) => {
-      const gross = Math.round(w.gross);
-      const net = Math.round(w.net);
-      const promo = Math.round(w.promo);  // CTKM only (cột GIẢM / TĂNG GIÁ)
-      // Voucher (sinh nhật / hạng khách) = phần chênh còn lại
+  const days = [...dailyMap.entries()]
+    .map(([day, d]) => {
+      const gross = Math.round(d.gross);
+      const net = Math.round(d.net);
+      const promo = Math.round(d.promo);
       const voucher = Math.max(0, gross - net - promo);
       return {
-        weekStart: wk,
-        txCount: w.txCount,
+        date: day,
+        txCount: d.txCount,
         gross, net, promo, voucher,
-        customers: w.customers.size,
-        newCust: w.newSet.size,
-        returning: w.retSet.size
+        customers: d.customers.size,
+        newCust: d.newSet.size,
+        returning: d.retSet.size
       };
     })
+    .sort((a,b) => a.date.localeCompare(b.date));
+
+  // ============================================================================
+  // WEEKLY AGGREGATION — for preview display only (NOT used for storage).
+  // Sum daily entries into weeks (Monday start) to show in preview modal.
+  // ============================================================================
+  const weeklyMap = new Map();
+  for (const d of days) {
+    const monday = mondayOfDate(new Date(d.date));
+    const wk = toISO(monday);
+    if (!weeklyMap.has(wk)) {
+      weeklyMap.set(wk, { gross:0, net:0, promo:0, voucher:0, txCount:0, customers:0, newCust:0, returning:0 });
+    }
+    const w = weeklyMap.get(wk);
+    w.gross += d.gross; w.net += d.net; w.promo += d.promo; w.voucher += d.voucher;
+    w.txCount += d.txCount;
+    w.customers += d.customers; w.newCust += d.newCust; w.returning += d.returning;
+  }
+  const weeks = [...weeklyMap.entries()]
+    .map(([wk, w]) => ({ weekStart: wk, ...w }))
     .sort((a,b) => a.weekStart.localeCompare(b.weekStart));
 
-  // Detect partial weeks (where week extends beyond file's date range)
+  // Detect partial weeks (where week extends beyond file's date range) — for preview only
   const fileStart = toISO(dateMin);
   const fileEnd = toISO(dateMax);
   weeks.forEach(w => {
     const monday = new Date(w.weekStart);
     const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
     const sundayISO = toISO(sunday);
-    // Partial if Monday is before fileStart or Sunday is after fileEnd
     w.partial = (w.weekStart < fileStart) || (sundayISO > fileEnd);
   });
 
-  return { branchId, fileStart, fileEnd, totalTx: transactions.length, weeks };
+  // Monthly aggregation (for preview & confidence check)
+  const monthlyMap = new Map();
+  for (const d of days) {
+    const m = d.date.substring(0, 7);
+    if (!monthlyMap.has(m)) {
+      monthlyMap.set(m, { gross:0, net:0, promo:0, voucher:0, txCount:0, customers:0, newCust:0, returning:0 });
+    }
+    const mo = monthlyMap.get(m);
+    mo.gross += d.gross; mo.net += d.net; mo.promo += d.promo; mo.voucher += d.voucher;
+    mo.txCount += d.txCount;
+    mo.customers += d.customers; mo.newCust += d.newCust; mo.returning += d.returning;
+  }
+  const months = [...monthlyMap.entries()]
+    .map(([m, mo]) => ({ month: m, ...mo }))
+    .sort((a,b) => a.month.localeCompare(b.month));
+
+  return { branchId, fileStart, fileEnd, totalTx: transactions.length, days, weeks, months };
 }
 
 /* ----- Upload UI flow ----- */
@@ -3682,23 +3776,17 @@ function showUploadError(filename, msg) {
 }
 
 function showUploadPreview(filename, r) {
-  const totalGross = r.weeks.reduce((a,w)=>a+w.gross, 0);
-  const totalNet   = r.weeks.reduce((a,w)=>a+w.net, 0);
-  const totalPromo = r.weeks.reduce((a,w)=>a+w.promo, 0);       // CTKM
-  const totalVoucher = r.weeks.reduce((a,w)=>a+w.voucher, 0);   // Voucher SN/hạng
-  const totalCust  = r.weeks.reduce((a,w)=>a+w.customers, 0);
+  // Totals from days = exact (calendar-accurate, no week-boundary issues)
+  const totalGross   = r.days.reduce((a,d)=>a+d.gross, 0);
+  const totalNet     = r.days.reduce((a,d)=>a+d.net, 0);
+  const totalPromo   = r.days.reduce((a,d)=>a+d.promo, 0);
+  const totalVoucher = r.days.reduce((a,d)=>a+d.voucher, 0);
+  const totalOrders  = r.days.reduce((a,d)=>a+d.txCount, 0);
   const branchOpts = ['tx-soan','quan-hoa','ha-dong'].map(bid => {
     const b = getBranch(bid);
     const sel = bid === r.branchId ? 'selected' : '';
     return `<option value="${bid}" ${sel}>${b ? b.name.replace("3AM D'SPA · ", "") : bid}</option>`;
   }).join('');
-
-  const partialCount = r.weeks.filter(w => w.partial).length;
-  const partialWarning = partialCount > 0 ? `
-    <div class="upload-warning">
-      ⚠️ <strong>${partialCount} tuần</strong> không nằm trọn trong file (có ngày Monday hoặc Sunday vượt khỏi khoảng ${r.fileStart} → ${r.fileEnd}).
-      Số liệu các tuần này sẽ bị thiếu — nên upload thêm file tháng kế cận để bổ sung.
-    </div>` : '';
 
   uploadBody.innerHTML = `
     <p style="color:var(--text-muted);font-size:13px;">${filename}</p>
@@ -3709,46 +3797,67 @@ function showUploadPreview(filename, r) {
       </div>
       <div class="upload-meta-item"><div class="label">Khoảng thời gian</div><div class="value" style="font-size:14px;">${r.fileStart} → ${r.fileEnd}</div></div>
       <div class="upload-meta-item"><div class="label">Tổng giao dịch</div><div class="value">${fmtNum(r.totalTx)}</div></div>
-      <div class="upload-meta-item"><div class="label">Số tuần</div><div class="value">${r.weeks.length}</div></div>
-      <div class="upload-meta-item"><div class="label">Khách hàng (đếm theo Mã KH)</div><div class="value">${fmtNum(totalCust)}</div></div>
+      <div class="upload-meta-item"><div class="label">Số ngày có data</div><div class="value">${r.days.length}</div></div>
       <div class="upload-meta-item"><div class="label">DT gộp (NGUYÊN GIÁ)</div><div class="value">${fmtVND(totalGross)}</div></div>
-      <div class="upload-meta-item"><div class="label">Giảm KM CTKM (GIẢM/TĂNG GIÁ)</div><div class="value">${fmtVND(totalPromo)}</div></div>
-      <div class="upload-meta-item"><div class="label">Giảm KM voucher (SN/hạng KH)</div><div class="value">${fmtVND(totalVoucher)}</div></div>
+      <div class="upload-meta-item"><div class="label">Giảm KM CTKM</div><div class="value">${fmtVND(totalPromo)}</div></div>
+      <div class="upload-meta-item"><div class="label">Giảm KM voucher</div><div class="value">${fmtVND(totalVoucher)}</div></div>
       <div class="upload-meta-item"><div class="label">DT thuần (TỔNG ĐÃ TT)</div><div class="value">${fmtVND(totalNet)}</div></div>
     </div>
-    ${partialWarning}
-    <h4 style="font-size:13px;margin:14px 0 8px;">Chi tiết theo tuần</h4>
-    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+
+    <h4 style="font-size:13px;margin:14px 0 8px;">Tổng hợp theo tháng (calendar — chính xác 100%)</h4>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;margin-bottom:14px;">
       <table class="upload-week-table">
         <thead><tr>
-          <th>Tuần bắt đầu</th><th>Tx</th><th>Khách hàng</th><th>Mới</th><th>Cũ</th><th>DT gộp</th><th>KM CTKM</th><th>KM voucher</th><th>DT thuần</th>
+          <th>Tháng</th><th>Đơn</th><th>KH</th><th>DT gộp</th><th>KM CTKM</th><th>KM voucher</th><th>DT thuần</th>
         </tr></thead>
-        <tbody>${r.weeks.map(w => `
-          <tr class="${w.partial ? 'partial-week' : ''}">
-            <td>${w.weekStart}${w.partial ? ' ⚠' : ''}</td>
-            <td>${fmtNum(w.txCount)}</td>
-            <td><strong>${fmtNum(w.customers)}</strong></td>
-            <td style="color:#22c55e;">${fmtNum(w.newCust)}</td>
-            <td style="color:#7c8aa3;">${fmtNum(w.returning)}</td>
-            <td>${fmtVND(w.gross)}</td>
-            <td>${fmtVND(w.promo)}</td>
-            <td>${fmtVND(w.voucher)}</td>
-            <td>${fmtVND(w.net)}</td>
+        <tbody>${r.months.map(m => `
+          <tr>
+            <td><strong>${m.month}</strong></td>
+            <td>${fmtNum(m.txCount)}</td>
+            <td>${fmtNum(m.customers)}</td>
+            <td>${fmtVND(m.gross)}</td>
+            <td>${fmtVND(m.promo)}</td>
+            <td>${fmtVND(m.voucher)}</td>
+            <td><strong>${fmtVND(m.net)}</strong></td>
           </tr>`).join('')}
         </tbody>
       </table>
     </div>
+
+    <details style="margin-bottom:10px;">
+      <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--text-muted);padding:6px 0;">Chi tiết theo tuần (${r.weeks.length} tuần)</summary>
+      <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:6px;">
+        <table class="upload-week-table">
+          <thead><tr>
+            <th>Tuần bắt đầu</th><th>Tx</th><th>KH</th><th>Mới</th><th>Cũ</th><th>DT gộp</th><th>KM CTKM</th><th>KM voucher</th><th>DT thuần</th>
+          </tr></thead>
+          <tbody>${r.weeks.map(w => `
+            <tr class="${w.partial ? 'partial-week' : ''}">
+              <td>${w.weekStart}${w.partial ? ' ⚠' : ''}</td>
+              <td>${fmtNum(w.txCount)}</td>
+              <td><strong>${fmtNum(w.customers)}</strong></td>
+              <td style="color:#22c55e;">${fmtNum(w.newCust)}</td>
+              <td style="color:#7c8aa3;">${fmtNum(w.returning)}</td>
+              <td>${fmtVND(w.gross)}</td>
+              <td>${fmtVND(w.promo)}</td>
+              <td>${fmtVND(w.voucher)}</td>
+              <td>${fmtVND(w.net)}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </details>
+
     <div style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.6;">
-      <strong>📊 3 loại giảm trừ:</strong>
-      <strong>KM CTKM</strong> (cột "GIẢM / TĂNG GIÁ" trong file = giảm giá chương trình KM) &middot;
-      <strong>KM voucher</strong> (= DT gộp − DT thuần − KM CTKM = voucher sinh nhật / hạng khách) &middot;
-      <strong>Tổng giảm trừ</strong> = CTKM + voucher = DT gộp − DT thuần<br>
-      <strong>📊 Cách đếm:</strong> Khách hàng = số Mã KH unique. Mới = lần đầu xuất hiện trong file, Cũ = đã có lần trước.<br>
-      <strong>💾 Khi bấm "Lưu":</strong> các tuần đã có sẵn của cơ sở này sẽ bị <strong>ghi đè</strong>.
+      <strong>📊 Lưu trữ theo NGÀY:</strong> mỗi ngày = 1 record → khi xem theo tháng sẽ tổng hợp theo
+      <strong>calendar tháng</strong> (không bị lệch tuần biên). Khi xem theo tuần sẽ tổng hợp Mon-Sun.<br>
+      <strong>📊 3 loại giảm trừ:</strong> <strong>KM CTKM</strong> (cột "GIẢM / TĂNG GIÁ" file) ·
+      <strong>KM voucher</strong> (= DT gộp − DT thuần − KM CTKM = voucher sinh nhật / hạng khách) ·
+      <strong>Tổng giảm trừ</strong> = CTKM + voucher.<br>
+      <strong>💾 Khi bấm "Lưu":</strong> các entries cũ trong khoảng ${r.fileStart} → ${r.fileEnd} sẽ bị thay thế.
     </div>
     <div class="upload-actions">
       <button class="btn-cancel" id="uploadCancelBtn">Huỷ</button>
-      <button class="btn-confirm" id="uploadConfirmBtn">Lưu ${r.weeks.length} tuần</button>
+      <button class="btn-confirm" id="uploadConfirmBtn">Lưu ${r.days.length} ngày (${r.months.length} tháng)</button>
     </div>`;
 
   document.getElementById('uploadCancelBtn').onclick = () => uploadModal.classList.remove('show');
@@ -3765,41 +3874,59 @@ function confirmUpload() {
   // Each week is assigned to the calendar month containing its Thursday — i.e. the
   // month containing ≥4 of the 7 days. This handles BOTH single-month and multi-month
   // files correctly. Single-month files put all 5 weeks (including boundary ones)
-  // into their month; multi-month files distribute weeks naturally.
-  function weekISOMonth(mondayISO) {
-    const d = new Date(mondayISO);
-    d.setDate(d.getDate() + 3);  // Thursday
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-  }
-
-  // Build new entries — each gets its own month based on its week's Thursday
-  const newEntries = r.weeks.map(w => ({
+  // ============================================================================
+  // DAILY STORAGE: save each day as its own entry. The aggregation logic uses
+  // entry.date.substring(0,7) for monthly views (= TRUE calendar month, no
+  // boundary-week errors). Weekly views still work — they re-aggregate days
+  // by Monday-of-date. This is the only way to get exact calendar month totals.
+  // ============================================================================
+  const newEntries = r.days.map(d => ({
     branchId: chosenBranch,
-    weekStart: w.weekStart,
-    newCustTotal: w.newCust,
-    returning: w.returning,
-    orders: w.txCount,
-    month: weekISOMonth(w.weekStart),
+    date: d.date,                        // 'YYYY-MM-DD' — primary key
+    weekStart: toISO(mondayOfDate(new Date(d.date))),  // legacy field for weekly aggregation
+    newCustTotal: d.newCust,
+    returning: d.returning,
+    orders: d.txCount,
     sources: {},
-    revenue: { service: w.gross, product: 0 },
-    promotions: { service: w.promo, product: 0 },         // CTKM only
-    promoVoucher: { service: w.voucher, product: 0 }       // Voucher sinh nhật/hạng KH
+    revenue: { service: d.gross, product: 0 },
+    promotions: { service: d.promo, product: 0 },        // CTKM
+    promoVoucher: { service: d.voucher, product: 0 }     // Voucher SN/hạng KH
   }));
-  // Remove existing entries for this branch + these week starts
-  const weekSet = new Set(r.weeks.map(w => w.weekStart));
-  DATA.entries = DATA.entries.filter(e => !(e.branchId === chosenBranch && weekSet.has(e.weekStart)));
-  // Append new entries
+
+  // ============================================================================
+  // REPLACEMENT STRATEGY: remove ALL existing entries for this branch within
+  // the file's date range (covers both legacy weekly entries AND prior daily uploads).
+  // ============================================================================
+  const rangeStart = r.fileStart;
+  const rangeEnd = r.fileEnd;
+  DATA.entries = DATA.entries.filter(e => {
+    if (e.branchId !== chosenBranch) return true;
+    // If entry has a `date`, check if it falls in the range
+    if (e.date) {
+      return !(e.date >= rangeStart && e.date <= rangeEnd);
+    }
+    // Legacy weekly entry: check if its week overlaps the range
+    if (e.weekStart) {
+      const wkStart = e.weekStart;
+      const wkEndDate = new Date(wkStart);
+      wkEndDate.setDate(wkEndDate.getDate() + 6);
+      const wkEnd = toISO(wkEndDate);
+      // Remove if any overlap with file range
+      return !(wkStart <= rangeEnd && wkEnd >= rangeStart);
+    }
+    return true;
+  });
+  // Append new daily entries
   DATA.entries.push(...newEntries);
-  // Defensive dedup as final safety net
+  // Defensive dedup
   DATA.entries = dedupeEntries(DATA.entries);
-  // Save → localStorage + Firestore (saveData was overridden earlier)
   saveData(DATA);
-  // Done — show success
+
   uploadBody.innerHTML = `
     <div class="upload-success">
-      ✅ Đã lưu thành công <strong>${r.weeks.length} tuần</strong> cho cơ sở <strong>${getBranch(chosenBranch).name.replace("3AM D'SPA · ", "")}</strong>.
+      ✅ Đã lưu <strong>${r.days.length} ngày</strong> (= ${fmtNum(r.totalTx)} giao dịch, ${r.months.length} tháng) cho cơ sở <strong>${getBranch(chosenBranch).name.replace("3AM D'SPA · ", "")}</strong>.
     </div>
-    <p style="color:var(--text-muted);font-size:13px;">Dashboard sẽ tự cập nhật. Khoảng thời gian filter có thể đã thay đổi.</p>
+    <p style="color:var(--text-muted);font-size:13px;">Dashboard sẽ tự cập nhật. Các entry cũ trong cùng khoảng thời gian đã được thay thế.</p>
     <div class="upload-actions">
       <button class="btn-confirm" onclick="document.getElementById('uploadModal').classList.remove('show'); renderAll();">Đóng</button>
     </div>`;
