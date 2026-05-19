@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.08" />
+<meta name="version" content="v2026.05.14.09" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 pnl-fallback-only -->
+<!-- BUILD: 2026-05-14 vietnamese-d-fix -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3692,13 +3692,16 @@ window.purgeBranchRange = purgeBranchRange;
 // Detect branch ID from CƠ SỞ column value
 function detectBranchFromCoSo(s) {
   if (!s) return null;
+  // Vietnamese normalization: NFD strips most diacritics (à→a, ô→o, ấ→a)
+  // but đ/Đ have no canonical decomposition — must replace explicitly.
   const lower = s.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');  // strip Vietnamese diacritics
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');  // critical for "Hà Đông", "Đà Nẵng", etc.
   if (lower.includes('tran xuan soan')) return 'tx-soan';
-  // Branch ID stays 'cau-giay' for data continuity; display name is now Cầu Giấy.
+  // Branch ID is 'cau-giay'; display name is Cầu Giấy.
   // Accept both spellings in Excel CƠ SỞ column (file from POS may use either).
   if (lower.includes('quan hoa') || lower.includes('cau giay')) return 'cau-giay';
-  if (lower.includes('ha dong'))         return 'ha-dong';
+  if (lower.includes('ha dong')) return 'ha-dong';
   return null;
 }
 
