@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.05" />
+<meta name="version" content="v2026.05.14.06" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 remove-seed-sep-nov -->
+<!-- BUILD: 2026-05-14 rename-cau-giay -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -809,7 +809,7 @@
 const BRANCHES = [
   { id: 'all',     name: 'Toàn hệ thống 3AM',           type: 'all',     color: '#1a2238' },
   { id: 'tx-soan', name: "3AM D'SPA · Trần Xuân Soạn",  type: 'spa',     color: '#ef4444' },
-  { id: 'quan-hoa',name: "3AM D'SPA · Quan Hoa",        type: 'spa',     color: '#f59e0b' },
+  { id: 'quan-hoa',name: "3AM D'SPA · Cầu Giấy",        type: 'spa',     color: '#f59e0b' },
   { id: 'ha-dong', name: "3AM D'SPA · Hà Đông",         type: 'spa',     color: '#10b981' },
   { id: 'sca',     name: 'SCA Academy',                  type: 'academy', color: '#8b5cf6' }
 ];
@@ -3654,7 +3654,9 @@ function detectBranchFromCoSo(s) {
   const lower = s.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '');  // strip Vietnamese diacritics
   if (lower.includes('tran xuan soan')) return 'tx-soan';
-  if (lower.includes('quan hoa'))        return 'quan-hoa';
+  // Branch ID stays 'quan-hoa' for data continuity; display name is now Cầu Giấy.
+  // Accept both spellings in Excel CƠ SỞ column (file from POS may use either).
+  if (lower.includes('quan hoa') || lower.includes('cau giay')) return 'quan-hoa';
   if (lower.includes('ha dong'))         return 'ha-dong';
   return null;
 }
