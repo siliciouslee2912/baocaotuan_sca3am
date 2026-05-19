@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.04" />
+<meta name="version" content="v2026.05.14.05" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 expand-range -->
+<!-- BUILD: 2026-05-14 remove-seed-sep-nov -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1118,18 +1118,6 @@ function seedRealData(){
       // Khách mới = customer first-time tuần đó; Khách cũ = customer đã đến trước
       // Tổng GD: 10,000 | Doanh thu gộp: 3.25 tỷ | KM: 127 triệu
       // ============================================================
-      txs('tx-soan', '2025-09-08',  20,   2,   6390000,    127500),
-      txs('tx-soan', '2025-09-15', 339,  48, 110508000,   3633000),
-      txs('tx-soan', '2025-09-22', 262, 102, 109810000,   3988500),
-      txs('tx-soan', '2025-09-29', 195, 139, 103203000,   2871900),
-      txs('tx-soan', '2025-10-06', 153, 157,  93233000,   3501500),
-      txs('tx-soan', '2025-10-13', 167, 186, 135603000,  12246950),
-      txs('tx-soan', '2025-10-20', 127, 183, 101474000,   3382000),
-      txs('tx-soan', '2025-10-27', 106, 196,  96008000,   5451500),
-      txs('tx-soan', '2025-11-03',  81, 223,  96315000,   2615000),
-      txs('tx-soan', '2025-11-10',  90, 224, 102879000,   2696500),
-      txs('tx-soan', '2025-11-17',  61, 228,  92111000,   2964500),
-      txs('tx-soan', '2025-11-24',  85, 239, 100606000,   3413000),
       txs('tx-soan', '2025-12-01',  70, 216,  95457000,   4097100),
       txs('tx-soan', '2025-12-08',  64, 227,  95599000,   2996500),
       txs('tx-soan', '2025-12-15',  63, 227, 100843000,   3454600),
@@ -1156,18 +1144,6 @@ function seedRealData(){
       // Nguồn: file export 7,380 transactions (1/1/2025 → 26/4/2026)
       // Tổng GD: 7,380 | Doanh thu gộp: 2.42 tỷ | KM: 130 triệu
       // ============================================================
-      txs('quan-hoa', '2025-09-08',  48,   8,  15630000,    386500),
-      txs('quan-hoa', '2025-09-15', 279,  40, 101321000,   4286500),
-      txs('quan-hoa', '2025-09-22', 158,  86,  75672000,   3666000),
-      txs('quan-hoa', '2025-09-29', 129,  87,  69133000,   3199500),
-      txs('quan-hoa', '2025-10-06', 135, 122,  93468000,   7485500),
-      txs('quan-hoa', '2025-10-13', 130, 141,  89224000,   3840000),
-      txs('quan-hoa', '2025-10-20',  79, 148,  81083000,   3876500),
-      txs('quan-hoa', '2025-10-27',  83, 155,  75932000,   3794500),
-      txs('quan-hoa', '2025-11-03',  74, 150,  76695000,   5294500),
-      txs('quan-hoa', '2025-11-10',  90, 169,  86195000,   4248000),
-      txs('quan-hoa', '2025-11-17',  67, 163,  80173000,   4404000),
-      txs('quan-hoa', '2025-11-24',  66, 161,  70495000,   3727500),
       txs('quan-hoa', '2025-12-01',  47, 173,  75394000,   4858500),
       txs('quan-hoa', '2025-12-08',  60, 169,  86691000,   6810500),
       txs('quan-hoa', '2025-12-15',  44, 146,  69525000,   3201700),
@@ -3427,6 +3403,25 @@ async function loadDataAndRender() {
   // Always overwrite from embedded constants so updates ship via code push.
   data.pnl = PNL_DATA;
   data.ktv = KTV_DATA;
+
+  // MIGRATION (2026-05-14): remove orphan seed entries T9-T11/2025 for tx-soan and quan-hoa.
+  // These were synthetic seed data only; user has chosen to keep only real Excel uploads.
+  if (Array.isArray(data.entries)) {
+    const before = data.entries.length;
+    data.entries = data.entries.filter(e => {
+      const isOrphanSpaSeed = (
+        (e.branchId === 'tx-soan' || e.branchId === 'quan-hoa') &&
+        !e.date &&  // legacy weekly entries only (uploaded daily entries have .date)
+        e.weekStart &&
+        (e.weekStart >= '2025-09-01' && e.weekStart <= '2025-11-30')
+      );
+      return !isOrphanSpaSeed;
+    });
+    const removed = before - data.entries.length;
+    if (removed > 0) {
+      console.warn(`[Migration] Đã xoá ${removed} seed entries T9-T11/2025 (tx-soan/quan-hoa).`);
+    }
+  }
 
   // Defensive dedup on every load — protects against duplicates from
   // mid-upload failures, schema migrations, or browser cache quirks.
