@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.03" />
+<meta name="version" content="v2026.05.14.04" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 rename-promos -->
+<!-- BUILD: 2026-05-14 expand-range -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3594,6 +3594,49 @@ function verifyMonth(branchId, monthYYYY_MM) {
 }
 window.verifyMonth = verifyMonth;
 
+// Diagnostic — list ALL months that have entries for a branch
+function listMonths(branchId) {
+  const monthCounts = {};
+  DATA.entries.filter(e => e.branchId === branchId).forEach(e => {
+    let m;
+    if (e.date) m = e.date.substring(0, 7);
+    else if (e.weekStart) m = monthKey(e.weekStart);
+    else return;
+    if (!monthCounts[m]) monthCounts[m] = { daily: 0, weekly: 0, orders: 0, gross: 0 };
+    if (e.date) monthCounts[m].daily += 1;
+    else monthCounts[m].weekly += 1;
+    monthCounts[m].orders += (e.orders || 0);
+    monthCounts[m].gross += (e.revenue?.service || 0) + (e.revenue?.product || 0);
+  });
+  console.log('%c[listMonths] ' + branchId + ' - Tất cả tháng có data:', 'color:#0ea5e9;font-weight:bold;font-size:13px;');
+  Object.keys(monthCounts).sort().forEach(m => {
+    const c = monthCounts[m];
+    console.log('  ' + m + '  daily=' + c.daily + '  weekly=' + c.weekly + '  orders=' + c.orders + '  gross=' + c.gross.toLocaleString());
+  });
+  console.log('%c[dateRange hiện tại] ' + dateRange.start + ' → ' + dateRange.end, 'color:#f59e0b;font-weight:bold;');
+  return monthCounts;
+}
+window.listMonths = listMonths;
+
+// Diagnostic — auto-widen dateRange to include ALL entries
+function expandDateRange() {
+  let minD = null, maxD = null;
+  DATA.entries.forEach(e => {
+    const k = e.date || e.weekStart;
+    if (!k) return;
+    if (!minD || k < minD) minD = k;
+    if (!maxD || k > maxD) maxD = k;
+  });
+  if (minD && maxD) {
+    dateRange = { start: minD, end: maxD };
+    console.log('%c[expandDateRange] dateRange mở rộng: ' + minD + ' → ' + maxD, 'color:#22c55e;font-weight:bold;');
+    renderAll();
+  } else {
+    console.log('%c[expandDateRange] Không có entries để mở rộng.', 'color:#ef4444');
+  }
+}
+window.expandDateRange = expandDateRange;
+
 // Diagnostic — purge all entries of a branch in date range, useful when data is corrupt
 function purgeBranchRange(branchId, fromISO, toISO) {
   const before = DATA.entries.length;
@@ -3991,9 +4034,16 @@ function confirmUpload() {
   saveData(DATA);
 
   // Render immediately so user sees new data without waiting for close button.
-  // Date filter may now be too narrow → widen to include uploaded range.
-  if (dateRange.end && r.fileEnd > dateRange.end) dateRange.end = r.fileEnd;
-  if (dateRange.start && r.fileStart < dateRange.start) dateRange.start = r.fileStart;
+  // Auto-widen dateRange to cover ALL entries (not just uploaded range) so older
+  // months remain visible.
+  let minD = null, maxD = null;
+  DATA.entries.forEach(e => {
+    const k = e.date || e.weekStart;
+    if (!k) return;
+    if (!minD || k < minD) minD = k;
+    if (!maxD || k > maxD) maxD = k;
+  });
+  if (minD && maxD) dateRange = { start: minD, end: maxD };
   renderAll();
 
   uploadBody.innerHTML = `
