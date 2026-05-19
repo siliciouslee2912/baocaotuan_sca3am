@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.01" />
+<meta name="version" content="v2026.05.14.02" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 daily-storage -->
+<!-- BUILD: 2026-05-14 debug-helpers -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -3530,7 +3530,7 @@ function dedupeReport(entries, branchId) {
   const dups = [];
   entries.forEach(e => {
     if (branchId && e.branchId !== branchId) return;
-    const k = e.branchId + '|' + e.weekStart;
+    const k = e.branchId + '|' + (e.date || e.weekStart);
     if (seen.has(k)) {
       dups.push({ key: k, prev: seen.get(k), curr: e });
     } else {
@@ -3539,8 +3539,55 @@ function dedupeReport(entries, branchId) {
   });
   return dups;
 }
-window.dedupeReport = dedupeReport;  // expose for console debugging
+window.dedupeReport = dedupeReport;
 window.dedupeEntries = dedupeEntries;
+
+// Diagnostic — call from console: verifyMonth('tx-soan', '2026-04')
+function verifyMonth(branchId, monthYYYY_MM) {
+  const all = DATA.entries.filter(e => e.branchId === branchId);
+  const matched = all.filter(e => {
+    if (e.date) return e.date.startsWith(monthYYYY_MM);
+    if (e.weekStart) return monthKey(e.weekStart) === monthYYYY_MM;
+    return false;
+  });
+  let totals = { orders: 0, gross: 0, net: 0, promo: 0, voucher: 0, cust: 0 };
+  console.log('%c[verifyMonth] ' + branchId + ' · ' + monthYYYY_MM + '  (' + matched.length + ' entries)',
+    'color:#0ea5e9;font-weight:bold;font-size:13px;');
+  matched.sort((a,b) => (a.date || a.weekStart).localeCompare(b.date || b.weekStart));
+  matched.forEach(e => {
+    const key = e.date || e.weekStart;
+    const type = e.date ? 'daily' : 'weekly';
+    const orders = e.orders || 0;
+    const gross = (e.revenue?.service || 0) + (e.revenue?.product || 0);
+    const promo = (e.promotions?.service || 0) + (e.promotions?.product || 0);
+    const voucher = (e.promoVoucher?.service || 0) + (e.promoVoucher?.product || 0);
+    const net = Math.max(0, gross - promo - voucher);
+    const cust = (e.newCustTotal || 0) + (e.returning || 0);
+    totals.orders += orders; totals.gross += gross; totals.net += net;
+    totals.promo += promo; totals.voucher += voucher; totals.cust += cust;
+    console.log('  ' + key + '  ' + type.padEnd(7) + '  orders=' + orders + '  gross=' + gross.toLocaleString() + '  ctkm=' + promo.toLocaleString() + '  vouc=' + voucher.toLocaleString() + '  net=' + net.toLocaleString() + '  KH=' + cust);
+  });
+  console.log('%c  TOTAL: orders=' + totals.orders + '  gross=' + totals.gross.toLocaleString() + '  ctkm=' + totals.promo.toLocaleString() + '  vouc=' + totals.voucher.toLocaleString() + '  net=' + totals.net.toLocaleString() + '  KH=' + totals.cust,
+    'color:#22c55e;font-weight:bold;');
+  return { matched, totals };
+}
+window.verifyMonth = verifyMonth;
+
+// Diagnostic — purge all entries of a branch in date range, useful when data is corrupt
+function purgeBranchRange(branchId, fromISO, toISO) {
+  const before = DATA.entries.length;
+  DATA.entries = DATA.entries.filter(e => {
+    if (e.branchId !== branchId) return true;
+    const key = e.date || e.weekStart;
+    return !(key >= fromISO && key <= toISO);
+  });
+  const removed = before - DATA.entries.length;
+  saveData(DATA);
+  console.log('%c[purgeBranchRange] Xoá ' + removed + ' entries của ' + branchId + ' trong ' + fromISO + ' → ' + toISO + '. Bấm renderAll() hoặc upload lại file.',
+    'color:#ef4444;font-weight:bold;');
+  return removed;
+}
+window.purgeBranchRange = purgeBranchRange;
 
 // Detect branch ID from CƠ SỞ column value
 function detectBranchFromCoSo(s) {
@@ -3922,13 +3969,20 @@ function confirmUpload() {
   DATA.entries = dedupeEntries(DATA.entries);
   saveData(DATA);
 
+  // Render immediately so user sees new data without waiting for close button.
+  // Date filter may now be too narrow → widen to include uploaded range.
+  if (dateRange.end && r.fileEnd > dateRange.end) dateRange.end = r.fileEnd;
+  if (dateRange.start && r.fileStart < dateRange.start) dateRange.start = r.fileStart;
+  renderAll();
+
   uploadBody.innerHTML = `
     <div class="upload-success">
       ✅ Đã lưu <strong>${r.days.length} ngày</strong> (= ${fmtNum(r.totalTx)} giao dịch, ${r.months.length} tháng) cho cơ sở <strong>${getBranch(chosenBranch).name.replace("3AM D'SPA · ", "")}</strong>.
     </div>
-    <p style="color:var(--text-muted);font-size:13px;">Dashboard sẽ tự cập nhật. Các entry cũ trong cùng khoảng thời gian đã được thay thế.</p>
+    <p style="color:var(--text-muted);font-size:13px;">Dashboard đã cập nhật. Các entry cũ trong cùng khoảng thời gian đã được thay thế.</p>
+    <p style="color:var(--text-muted);font-size:11.5px;font-style:italic;margin-top:6px;">💡 Để kiểm tra, mở DevTools (F12) → Console → gõ <code>verifyMonth('${chosenBranch}', '2026-04')</code></p>
     <div class="upload-actions">
-      <button class="btn-confirm" onclick="document.getElementById('uploadModal').classList.remove('show'); renderAll();">Đóng</button>
+      <button class="btn-confirm" onclick="document.getElementById('uploadModal').classList.remove('show');">Đóng</button>
     </div>`;
   _currentParse = null;
 }
