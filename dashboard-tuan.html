@@ -4,11 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>RP - Dashboard 3AM &amp; SCA</title>
-<meta name="version" content="v2026.05.14.09" />
+<meta name="version" content="v2026.05.14.10" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
-<!-- BUILD: 2026-05-14 vietnamese-d-fix -->
+<!-- BUILD: 2026-05-14 promo-title-fix -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1929,11 +1929,20 @@ function renderMainChart(){
   const _modeLabel = (
     revenueMode === 'net'           ? 'thuần' :
     revenueMode === 'gross'         ? 'gộp' :
-    revenueMode === 'promo_ctkm'    ? 'KM CTKM' :
-    revenueMode === 'promo_voucher' ? 'KM voucher' :
-    revenueMode === 'promo'         ? 'tổng KM' :
+    revenueMode === 'promo_ctkm'    ? 'CTKM' :
+    revenueMode === 'promo_voucher' ? 'hạng khách' :
+    revenueMode === 'promo'         ? 'tổng' :
     'KM'
   );
+  // When toggle is one of the promo modes, the chart title noun becomes
+  // "Khuyến mại" instead of "Doanh thu" (promo amounts ≠ revenue).
+  const _modeIsPromo = (
+    revenueMode === 'promo' ||
+    revenueMode === 'promo_ctkm' ||
+    revenueMode === 'promo_voucher'
+  );
+  const _modeNoun = _modeIsPromo ? 'Khuyến mại' : 'Doanh thu';
+  const _modeShortNoun = _modeIsPromo ? 'KM' : 'DT';
   // Each value extractor returns the metric for a single revenue category
   // depending on revenueMode. CTKM = promotions.X, Voucher = promoVoucher.X.
   const valSvc = (p) => {
@@ -1979,12 +1988,12 @@ function renderMainChart(){
   if (context.branch.type === 'academy' && activeView === 'overview') {
     // SCA: chỉ hiển thị doanh thu trên main chart
     datasets.push({
-      label: `Doanh thu (${_modeLabel})`, data: periods.map(p => valCourse(p) / 1_000_000),
+      label: `${_modeNoun} (${_modeLabel})`, data: periods.map(p => valCourse(p) / 1_000_000),
       borderColor: '#f59e0b', backgroundColor: makeGrad('rgba(245,158,11,.25)', 'rgba(245,158,11,0)'),
       borderWidth: 2.5, tension: 0.4, fill: true,
       pointBackgroundColor: '#fff', pointBorderColor: '#f59e0b', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
     });
-    title = `Doanh thu SCA Academy (${_modeLabel}) — theo ` + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    title = `${_modeNoun} SCA Academy (${_modeLabel}) — theo ` + (activeMode === 'monthly' ? 'tháng' : 'tuần');
     subtitle = 'Đơn vị: triệu đồng';
   } else if (activeView === 'customers') {
     datasets.push({
@@ -1998,20 +2007,20 @@ function renderMainChart(){
     subtitle = 'Tổng số khách hàng qua các kỳ';
   } else if (activeView === 'service') {
     datasets.push({
-      label: `DT dịch vụ (${_modeLabel})`, data: periods.map(p => valSvc(p) / 1_000_000),
+      label: `${_modeShortNoun} dịch vụ (${_modeLabel})`, data: periods.map(p => valSvc(p) / 1_000_000),
       borderColor: '#2563eb', backgroundColor: makeGrad('rgba(37,99,235,.25)','rgba(37,99,235,0)'),
       borderWidth: 2.5, tension: 0.4, fill: true,
       pointBackgroundColor: '#fff', pointBorderColor: '#2563eb', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
     });
-    title = `Doanh thu dịch vụ (${_modeLabel})`; subtitle = 'Đơn vị: triệu đồng';
+    title = `${_modeNoun} dịch vụ (${_modeLabel})`; subtitle = 'Đơn vị: triệu đồng';
   } else if (activeView === 'product') {
     datasets.push({
-      label: `DT sản phẩm (${_modeLabel})`, data: periods.map(p => valProd(p) / 1_000_000),
+      label: `${_modeShortNoun} sản phẩm (${_modeLabel})`, data: periods.map(p => valProd(p) / 1_000_000),
       borderColor: '#f59e0b', backgroundColor: makeGrad('rgba(245,158,11,.25)','rgba(245,158,11,0)'),
       borderWidth: 2.5, tension: 0.4, fill: true,
       pointBackgroundColor: '#fff', pointBorderColor: '#f59e0b', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6
     });
-    title = `Doanh thu bán hàng (${_modeLabel})`; subtitle = 'Đơn vị: triệu đồng';
+    title = `${_modeNoun} bán hàng (${_modeLabel})`; subtitle = 'Đơn vị: triệu đồng';
   } else if (activeView === 'courses') {
     // stacked bar of course enrollments
     COURSES.forEach(c => {
@@ -2026,13 +2035,13 @@ function renderMainChart(){
     // overview
     if (context.showSpa) {
       datasets.push({
-        label: `DT dịch vụ (${_modeLabel})`, data: periods.map(p => valSvc(p) / 1_000_000),
+        label: `${_modeShortNoun} dịch vụ (${_modeLabel})`, data: periods.map(p => valSvc(p) / 1_000_000),
         borderColor: '#2563eb', backgroundColor: makeGrad('rgba(37,99,235,.20)','rgba(37,99,235,0)'),
         borderWidth: 2.5, tension: 0.4, fill: true,
         pointBackgroundColor: '#fff', pointBorderColor: '#2563eb', pointBorderWidth: 2, pointRadius: 3, pointHoverRadius: 5
       });
       datasets.push({
-        label: `DT sản phẩm (${_modeLabel})`, data: periods.map(p => valProd(p) / 1_000_000),
+        label: `${_modeShortNoun} sản phẩm (${_modeLabel})`, data: periods.map(p => valProd(p) / 1_000_000),
         borderColor: '#f59e0b', backgroundColor: makeGrad('rgba(245,158,11,.20)','rgba(245,158,11,0)'),
         borderWidth: 2.5, tension: 0.4, fill: true,
         pointBackgroundColor: '#fff', pointBorderColor: '#f59e0b', pointBorderWidth: 2, pointRadius: 3, pointHoverRadius: 5
@@ -2040,13 +2049,13 @@ function renderMainChart(){
     }
     if (context.showAcademy) {
       datasets.push({
-        label: `DT khoá học (SCA, ${_modeLabel})`, data: periods.map(p => valCourse(p) / 1_000_000),
+        label: `${_modeShortNoun} khoá học (SCA, ${_modeLabel})`, data: periods.map(p => valCourse(p) / 1_000_000),
         borderColor: '#8b5cf6', backgroundColor: makeGrad('rgba(139,92,246,.20)','rgba(139,92,246,0)'),
         borderWidth: 2.5, tension: 0.4, fill: true,
         pointBackgroundColor: '#fff', pointBorderColor: '#8b5cf6', pointBorderWidth: 2, pointRadius: 3, pointHoverRadius: 5
       });
     }
-    title = `Doanh thu (${_modeLabel}) theo ` + (activeMode === 'monthly' ? 'tháng' : 'tuần');
+    title = `${_modeNoun} (${_modeLabel}) theo ` + (activeMode === 'monthly' ? 'tháng' : 'tuần');
     subtitle = 'Đơn vị: triệu đồng';
   }
 
